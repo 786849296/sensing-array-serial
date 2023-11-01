@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "uart (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "uart (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
