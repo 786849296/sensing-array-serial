@@ -4,8 +4,9 @@
 
 1. setting更改图例量程 
 2. 每个点的折线图，gridview事件，new一个窗口 
-3. 显示区域可选 
-4. 性能优化 
+3. 显示区域可选
+4. 图标  
+5. 性能优化 
 
 <font size=6 color=red>**WantDo?**</font>
 

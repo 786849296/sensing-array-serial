@@ -191,9 +191,9 @@
                                            Orientation="Horizontal" />
                         </ItemsPanelTemplate>
                     </GridView.ItemsPanel>
-                    <GridView.ItemContainerTransitions>
+                    <!--<GridView.ItemContainerTransitions>
                         <TransitionCollection />
-                    </GridView.ItemContainerTransitions>
+                    </GridView.ItemContainerTransitions>-->
                 </GridView>
                 <Button Click="click_startBtn"
                         Width="42"
