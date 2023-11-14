@@ -30,8 +30,8 @@ namespace uart
     /// </summary>
     public sealed partial class MainWindow : Window
     {
-        public const ushort row = 32;
-        public const ushort col = 32;
+        public const ushort row = 10;
+        public const ushort col = 16;
         public ushort[,] heatmapValue = new ushort[row, col];
 
         public SerialDevice com;
@@ -75,7 +75,7 @@ namespace uart
                         com.DataBits = Convert.ToUInt16(combobox_dataBits.SelectedValue);
                         com.StopBits = (SerialStopBitCount)combobox_stopBits.SelectedIndex;
                         com.Parity = (SerialParity)combobox_parity.SelectedIndex;
-                        com.ReadTimeout = TimeSpan.FromMilliseconds(40);
+                        com.ReadTimeout = TimeSpan.FromMilliseconds(400);
 
                         info_error.IsOpen = false;
                         viewModel_Switch.isStartIcon = false;

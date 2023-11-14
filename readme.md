@@ -12,3 +12,10 @@
 
 1. 一些图像处理（插值、高斯）
 2. 点自适应大小
+
+<font size=6 color=blue>**project demand**</font>
+
+1. 蓝牙
+2. 手套上位机
+3. 打包
+4. 物体识别

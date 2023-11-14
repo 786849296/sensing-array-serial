@@ -62,7 +62,7 @@ namespace uart
     {
         public int x;
         public int y;
-        public ushort range = 32;
+        public ushort range = 4095;
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
         private ushort _adcValue;
         public ushort adcValue
@@ -84,7 +84,7 @@ namespace uart
 
         public Color GetColor(ushort adcValue)
         {
-            byte offset = (byte)(0xff - adcValue * 256 / range);
+            byte offset = (byte)(0xff - adcValue * 255 / range);
             return Color.FromArgb(0xff, 0xff, offset, offset);
         }
 
