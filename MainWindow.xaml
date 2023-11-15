@@ -187,7 +187,7 @@
                     </GridView.ItemContainerStyle>
                     <GridView.ItemsPanel>
                         <ItemsPanelTemplate>
-                            <ItemsWrapGrid MaximumRowsOrColumns="16"
+                            <ItemsWrapGrid MaximumRowsOrColumns="32"
                                            Orientation="Horizontal" />
                         </ItemsPanelTemplate>
                     </GridView.ItemsPanel>

@@ -18,7 +18,6 @@ using System.Collections.ObjectModel;
 using Windows.Devices.Enumeration;
 using Windows.Storage.Streams;
 using Microsoft.UI.Dispatching;
-using System.Diagnostics;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -30,8 +29,8 @@ namespace uart
     /// </summary>
     public sealed partial class MainWindow : Window
     {
-        public const ushort row = 10;
-        public const ushort col = 16;
+        public const ushort row = 32;
+        public const ushort col = 32;
         public ushort[,] heatmapValue = new ushort[row, col];
 
         public SerialDevice com;
