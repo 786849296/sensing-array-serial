@@ -19,6 +19,9 @@ using Windows.Devices.Enumeration;
 using Windows.Storage.Streams;
 using Microsoft.UI.Dispatching;
 using System.Diagnostics;
+using Windows.Storage.Pickers;
+using Windows.Storage;
+using Windows.Storage.AccessCache;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -38,19 +41,46 @@ namespace uart
         public string comID;
         public DataReader readerCom;
         public DispatcherQueueController thread_serialCollect;
+        public StorageFolder folder;
 
         public ObservableCollection<DeviceInformation> comInfos = new();
         internal ViewModel_switch viewModel_Switch = new();
-        internal ObservableCollection<HeatMap_pixel> heatmap = new();
+        internal ObservableCollection<HeatMap_pixel> palm = new();
+        internal ObservableCollection<HeatMap_pixel> f1 = new();
+        internal ObservableCollection<HeatMap_pixel> f2 = new();
+        internal ObservableCollection<HeatMap_pixel> f3 = new();
+        internal ObservableCollection<HeatMap_pixel> f4 = new();
+        internal ObservableCollection<HeatMap_pixel> f5 = new();
+        internal ObservableCollection<HeatMap_pixel> ff = new();
+        internal ObservableCollection<HeatMap_pixel> fb = new();
 
         public MainWindow()
         {
             this.InitializeComponent();
             this.ExtendsContentIntoTitleBar = true;
             this.SetTitleBar(AppTitleBar);
-            for (int i = 0; i < row; i++)
-                for (int j = 0; j < col; j++)
-                    heatmap.Add(new HeatMap_pixel(i, j, 0));
+            for (int i = 0; i < 10; i++)
+                for (int j = 0; j < 10; j++)
+                    palm.Add(new HeatMap_pixel(i, j + 6, 0));
+            for (int i = 0; i < 3; i++)
+                for (int j = 0; j < 3; j++)
+                {
+                    f1.Add(new HeatMap_pixel(i, j, 0));
+                    f2.Add(new HeatMap_pixel(i + 3, j, 0));
+                    f3.Add(new HeatMap_pixel(i + 6, j, 0));
+                    f4.Add(new HeatMap_pixel(i, j + 3, 0));
+                    f5.Add(new HeatMap_pixel(i + 3, j + 3, 0));
+                }
+            ff.Add(new HeatMap_pixel(6, 3, 0));
+            ff.Add(new HeatMap_pixel(6, 4, 0));
+            ff.Add(new HeatMap_pixel(6, 5, 0));
+            ff.Add(new HeatMap_pixel(7, 3, 0));
+            ff.Add(new HeatMap_pixel(7, 4, 0));
+            fb.Add(new HeatMap_pixel(7, 5, 0));
+            fb.Add(new HeatMap_pixel(8, 3, 0));
+            fb.Add(new HeatMap_pixel(8, 4, 0));
+            fb.Add(new HeatMap_pixel(8, 5, 0));
+            fb.Add(new HeatMap_pixel(9, 0, 0));
         }
 
         private void click_splitViewPaneBtn(object sender, RoutedEventArgs e)
@@ -75,7 +105,7 @@ namespace uart
                         com.DataBits = Convert.ToUInt16(combobox_dataBits.SelectedValue);
                         com.StopBits = (SerialStopBitCount)combobox_stopBits.SelectedIndex;
                         com.Parity = (SerialParity)combobox_parity.SelectedIndex;
-                        com.ReadTimeout = TimeSpan.FromMilliseconds(400);
+                        com.ReadTimeout = TimeSpan.FromMilliseconds(165);
 
                         info_error.IsOpen = false;
                         viewModel_Switch.isStartIcon = false;
@@ -112,9 +142,65 @@ namespace uart
                                 if (readerCom.ReadUInt16() != 0xffff)
                                     throw new Exception("未找到下一帧帧头");
                                 this.DispatcherQueue.TryEnqueue(() => {
+                                    //Stopwatch stopwatch = new();
+                                    //stopwatch.Start();
+                                    if (folder != null)
+                                    {
+                                        string fileName = DateTime.Now.ToString("yyyy-MM-dd HH.mm.ss.fff") + ".csv";
+                                        using (var writer = new StreamWriter(System.IO.Path.Combine(folder.Path, fileName)))
+                                            for (int i = 0; i < row; i++)
+                                            {
+                                                for (int j = 0; j < col; j++)
+                                                    writer.Write(heatmapValue[i, j] + ",");
+                                                writer.Write('\n');
+                                            }
+                                    }
                                     for (int i = 0; i < row; i++)
                                         for (int j = 0; j < col; j++)
-                                            heatmap[i * col + j].adcValue = heatmapValue[i, j];
+                                            if (i < 3)
+                                            {
+                                                if (j < 3)
+                                                    f1[8 - (i * 3 + j)].adcValue = heatmapValue[i, j];
+                                                else if (j < 6)
+                                                    f4[8 - (i * 3 + j - 3)].adcValue = heatmapValue[i, j];
+                                                else
+                                                    palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
+                                            }
+                                            else if (i < 6)
+                                            {
+                                                if (j < 3)
+                                                    f2[8 - ((i - 3) * 3 + j)].adcValue = heatmapValue[i, j];
+                                                else if (j < 6)
+                                                    f5[8 - ((i - 3) * 3 + j - 3)].adcValue = heatmapValue[i, j];
+                                                else
+                                                    palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
+                                            }
+                                            else if (i < 9)
+                                            {
+                                                if (j < 3)
+                                                    f3[8 - ((i - 6) * 3 + j)].adcValue = heatmapValue[i, j];
+                                                else if (j < 6)
+                                                {
+                                                    if (i < 8)
+                                                        if (i == 7 && j == 5)
+                                                            fb[0].adcValue = heatmapValue[i, j];
+                                                        else
+                                                            ff[(i - 6) * 3 + j - 3].adcValue = heatmapValue[i, j];
+                                                    else
+                                                        fb[j - 2].adcValue = heatmapValue[i, j];
+                                                }
+                                                else
+                                                    palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
+                                            }
+                                            else
+                                            {
+                                                if (j == 0)
+                                                    fb[4].adcValue = heatmapValue[i, j];
+                                                else if (j >= 6)
+                                                    palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
+                                            }
+                                    //stopwatch.Stop();
+                                    //Debug.WriteLine(stopwatch.Elapsed.TotalMilliseconds);
                                 });
                             }
                         });
@@ -127,6 +213,31 @@ namespace uart
             }
             else if (!viewModel_Switch.isStartIcon)
                 viewModel_Switch.isStartIcon = true;
+        }
+
+        private async void toggle_imageCollectSw(object sender, RoutedEventArgs e)
+        {
+            ToggleSwitch imageCollectSw = sender as ToggleSwitch;
+            if (imageCollectSw.IsOn)
+            {
+                FolderPicker folderPicker = new FolderPicker();
+                //var window = WindowHelper.GetWindowForElement(this);
+                var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                // Initialize the folder picker with the window handle (HWND).
+                WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, hWnd);
+                // Set options for your folder picker
+                folderPicker.SuggestedStartLocation = PickerLocationId.Desktop;
+                folderPicker.FileTypeFilter.Add("*");
+                // Open the picker for the user to pick a folder
+                folder = await folderPicker.PickSingleFolderAsync();
+                if (folder != null)
+                {
+                    StorageApplicationPermissions.FutureAccessList.AddOrReplace("PickedFolderToken", folder);
+                    ts_imageCollect.OnContent = folder.Path;
+                }
+            }
+            else
+                folder = null;
         }
 
         //created by bing
@@ -152,5 +263,6 @@ namespace uart
             //storyboard.Begin();
             icon_setting.Rotation = icon_setting.Rotation + 120 % 360;
         }
+
     }
 }
