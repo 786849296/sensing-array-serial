@@ -522,7 +522,12 @@
                                Margin="0 12 0 12">
                         <Rectangle.Fill>
                             <LinearGradientBrush StartPoint="0, 0" EndPoint="0, 1">
-                                <GradientStop Color="Red" Offset="0" />
+                                <GradientStop Color="DarkRed" Offset="0" />
+                                <GradientStop Color="Red" Offset="0.2" />
+                                <GradientStop Color="Yellow" Offset="0.4" />
+                                <GradientStop Color="Cyan" Offset="0.6" />
+                                <GradientStop Color="Blue" Offset="0.8" />
+                                <GradientStop Color="DarkBlue" Offset="0.99" />
                                 <GradientStop Color="White" Offset="1" />
                             </LinearGradientBrush>
                         </Rectangle.Fill>

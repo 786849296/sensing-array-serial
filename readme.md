@@ -3,6 +3,6 @@
 
 <font size=6 color=blue>**project demand**</font>
 
-1. 手套ui
+<!--1. 手套ui-->
 1. 物体识别
 1. 蓝牙
