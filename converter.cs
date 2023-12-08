@@ -60,15 +60,15 @@ namespace uart
 
     internal class HeatMap_pixel : INotifyPropertyChanged
     {
-        private Color[] linearGradientColors = new Color[6]
-        {
+        private Color[] linearGradientColors =
+        [
             Colors.DarkBlue,
             Colors.Blue,
             Colors.Cyan,
             Colors.Yellow,
             Colors.Red,
             Colors.DarkRed,
-        };
+        ];
         public int x;
         public int y;
         //todo: range change
