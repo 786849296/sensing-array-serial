@@ -12,6 +12,11 @@
     </Window.SystemBackdrop>
 
     <Grid>
+        <Grid.Resources>
+            <DataTemplate x:Key="headerFont">
+                <TextBlock Text="{Binding}" FontWeight="Bold" />
+            </DataTemplate>
+        </Grid.Resources>
         <Grid.RowDefinitions>
             <RowDefinition Height="32" />
             <RowDefinition Height="*" />
@@ -43,80 +48,86 @@
                    PaneBackground="{StaticResource SystemAccentColorLight3}"
                    Grid.Row="1">
             <SplitView.Pane>
-                <StackPanel Orientation="Vertical"
+                <Pivot>
+                    <PivotItem>
+                        <PivotItem.Header>
+                            <FontIcon Glyph="&#xE95F;" />
+                        </PivotItem.Header>
+                        <StackPanel Orientation="Vertical"
                             Padding="24 24 24 24">
-                    <ComboBox x:Name="combobox_com"
-                              ItemsSource="{x:Bind comInfos}"
-                              DisplayMemberPath="Name"
-                              Header="com"
-                              PlaceholderText="none"
-                              x:FieldModifier="public"
-                              Margin="0 12 0 12">
-                        <ComboBox.HeaderTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding}" FontWeight="Bold"/>
-                            </DataTemplate>
-                        </ComboBox.HeaderTemplate>
-                    </ComboBox>
-                    <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
-                    <ComboBox IsEditable="True"
-                              x:Name="combobox_baud"
-                              SelectedIndex="1"
-                              Header="baud"
-                              Margin="0 12 0 12">
-                        <ComboBox.HeaderTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding}" FontWeight="Bold"/>
-                            </DataTemplate>
-                        </ComboBox.HeaderTemplate>
-                        <x:Int32>115200</x:Int32>
-                        <x:Int32>1000000</x:Int32>
-                    </ComboBox>
-                    <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
-                    <ComboBox x:Name="combobox_dataBits"
-                              Header="data bits"
-                              SelectedIndex="1"
-                              Margin="0 12 0 12">
-                        <ComboBox.HeaderTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding}" FontWeight="Bold"/>
-                            </DataTemplate>
-                        </ComboBox.HeaderTemplate>
-                        <x:Int32>7</x:Int32>
-                        <x:Int32>8</x:Int32>
-                    </ComboBox>
-                    <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
-                    <ComboBox x:Name="combobox_stopBits"
-                              Header="stop bits"
-                              SelectedIndex="0"
-                              Margin="0 12 0 12">
-                        <ComboBox.HeaderTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding}" FontWeight="Bold"/>
-                            </DataTemplate>
-                        </ComboBox.HeaderTemplate>
-                        <x:String>One</x:String>
-                        <x:String>OnePointFive</x:String>
-                        <x:String>Two</x:String>
-                    </ComboBox>
-                    <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
-                    <ComboBox x:Name="combobox_parity"
-                              Header="parity"
-                              SelectedIndex="0"
-                              Margin="0 12 0 12">
-                        <ComboBox.HeaderTemplate>
-                            <DataTemplate>
-                                <TextBlock Text="{Binding}" FontWeight="Bold"/>
-                            </DataTemplate>
-                        </ComboBox.HeaderTemplate>
-                        <x:String>None</x:String>
-                        <x:String>Odd</x:String>
-                        <x:String>Even</x:String>
-                        <x:String>Mark</x:String>
-                        <x:String>Space</x:String>
-                    </ComboBox>
-                    <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
-                </StackPanel>
+                            <ComboBox x:Name="combobox_com"
+                                ItemsSource="{x:Bind comInfos}"
+                                DisplayMemberPath="Name"
+                                Header="com"
+                                PlaceholderText="none"
+                                x:FieldModifier="public"
+                                Margin="0 12 0 12"
+                                HeaderTemplate="{StaticResource headerFont}" />
+                            <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
+                            <ComboBox IsEditable="True"
+                                x:Name="combobox_baud"
+                                SelectedIndex="1"
+                                Header="baud"
+                                Margin="0 12 0 12"
+                                HeaderTemplate="{StaticResource headerFont}">
+                                <x:Int32>115200</x:Int32>
+                                <x:Int32>1000000</x:Int32>
+                            </ComboBox>
+                            <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
+                            <ComboBox x:Name="combobox_dataBits"
+                                Header="data bits"
+                                SelectedIndex="1"
+                                Margin="0 12 0 12"
+                                HeaderTemplate="{StaticResource headerFont}">
+                                <x:Int32>7</x:Int32>
+                                <x:Int32>8</x:Int32>
+                            </ComboBox>
+                            <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
+                            <ComboBox x:Name="combobox_stopBits"
+                                Header="stop bits"
+                                SelectedIndex="0"
+                                Margin="0 12 0 12"
+                                HeaderTemplate="{StaticResource headerFont}" >
+                                <x:String>One</x:String>
+                                <x:String>OnePointFive</x:String>
+                                <x:String>Two</x:String>
+                            </ComboBox>
+                            <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
+                            <ComboBox x:Name="combobox_parity"
+                                Header="parity"
+                                SelectedIndex="0"
+                                Margin="0 12 0 12"
+                                HeaderTemplate="{StaticResource headerFont}">
+                                <x:String>None</x:String>
+                                <x:String>Odd</x:String>
+                                <x:String>Even</x:String>
+                                <x:String>Mark</x:String>
+                                <x:String>Space</x:String>
+                            </ComboBox>
+                            <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
+                        </StackPanel>
+                    </PivotItem>
+                    <PivotItem>
+                        <PivotItem.Header>
+                            <FontIcon Glyph="&#xE702;" />
+                        </PivotItem.Header>
+                        <StackPanel Orientation="Vertical" Padding="24 24 24 24">
+                        </StackPanel>
+                    </PivotItem>
+                    <PivotItem>
+                        <PivotItem.Header>
+                            <FontIcon Glyph="&#xE90F;" />
+                        </PivotItem.Header>
+                        <StackPanel Orientation="Vertical" Padding="24 24 24 24">
+                            <ToggleSwitch x:Name="ts_imageCollect" 
+                            Header="连续采集图像" 
+                            OffContent=""
+                            IsOn="False" 
+                            Toggled="toggle_imageCollectSw" 
+                            HeaderTemplate="{StaticResource headerFont}" />
+                        </StackPanel>
+                    </PivotItem>
+                </Pivot>
             </SplitView.Pane>
             <Grid>
                 <Grid.ColumnDefinitions>
@@ -191,9 +202,9 @@
                                            Orientation="Horizontal" />
                         </ItemsPanelTemplate>
                     </GridView.ItemsPanel>
-                    <!--<GridView.ItemContainerTransitions>
+                    <GridView.ItemContainerTransitions>
                         <TransitionCollection />
-                    </GridView.ItemContainerTransitions>-->
+                    </GridView.ItemContainerTransitions>
                 </GridView>
                 <Button Click="click_startBtn"
                         Width="42"
@@ -231,7 +242,12 @@
                                Margin="0 12 0 12">
                         <Rectangle.Fill>
                             <LinearGradientBrush StartPoint="0, 0" EndPoint="0, 1">
-                                <GradientStop Color="Red" Offset="0" />
+                                <GradientStop Color="DarkRed" Offset="0" />
+                                <GradientStop Color="Red" Offset="0.2" />
+                                <GradientStop Color="Yellow" Offset="0.4" />
+                                <GradientStop Color="Cyan" Offset="0.6" />
+                                <GradientStop Color="Blue" Offset="0.8" />
+                                <GradientStop Color="DarkBlue" Offset="0.99" />
                                 <GradientStop Color="White" Offset="1" />
                             </LinearGradientBrush>
                         </Rectangle.Fill>

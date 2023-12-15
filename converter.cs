@@ -60,8 +60,18 @@ namespace uart
 
     internal class HeatMap_pixel : INotifyPropertyChanged
     {
+        private Color[] linearGradientColors =
+        [
+            Colors.DarkBlue,
+            Colors.Blue,
+            Colors.Cyan,
+            Colors.Yellow,
+            Colors.Red,
+            Colors.DarkRed,
+        ];
         public int x;
         public int y;
+        //todo: range change
         public ushort range = 4095;
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
         private ushort _adcValue;
@@ -84,8 +94,19 @@ namespace uart
 
         public Color GetColor(ushort adcValue)
         {
-            byte offset = (byte)(0xff - adcValue * 255 / range);
-            return Color.FromArgb(0xff, 0xff, offset, offset);
+            float offset = (float)adcValue / (float)range;
+            if (offset < 0.01)
+                return Colors.White;
+            float region = offset * 10 / 2;
+            if (region == (int)region)
+                return linearGradientColors[(int)region];
+            else
+            {
+                byte r = (byte)(linearGradientColors[(int)region].R * (1 - region + (int)region) + linearGradientColors[(int)region + 1].R * (region - (int)region));
+                byte g = (byte)(linearGradientColors[(int)region].G * (1 - region + (int)region) + linearGradientColors[(int)region + 1].G * (region - (int)region));
+                byte b = (byte)(linearGradientColors[(int)region].B * (1 - region + (int)region) + linearGradientColors[(int)region + 1].B * (region - (int)region));
+                return Color.FromArgb(0xff, r, g, b);
+            }
         }
 
         public void OnPropertyChanged([CallerMemberName] string propertyName = null)

@@ -18,6 +18,10 @@ using System.Collections.ObjectModel;
 using Windows.Devices.Enumeration;
 using Windows.Storage.Streams;
 using Microsoft.UI.Dispatching;
+using System.Diagnostics;
+using Windows.Storage.Pickers;
+using Windows.Storage;
+using Windows.Storage.AccessCache;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -37,6 +41,7 @@ namespace uart
         public string comID;
         public DataReader readerCom;
         public DispatcherQueueController thread_serialCollect;
+        public StorageFolder folder;
 
         public ObservableCollection<DeviceInformation> comInfos = new();
         internal ViewModel_switch viewModel_Switch = new();
@@ -111,6 +116,17 @@ namespace uart
                                 if (readerCom.ReadUInt16() != 0xffff)
                                     throw new Exception("未找到下一帧帧头");
                                 this.DispatcherQueue.TryEnqueue(() => {
+                                    if (folder != null)
+                                    {
+                                        string fileName = DateTime.Now.ToString("yyyy-MM-dd HH.mm.ss.fff") + ".csv";
+                                        using (var writer = new StreamWriter(System.IO.Path.Combine(folder.Path, fileName)))
+                                            for (int i = 0; i < row; i++)
+                                            {
+                                                for (int j = 0; j < col; j++)
+                                                    writer.Write(heatmapValue[i, j] + ",");
+                                                writer.Write('\n');
+                                            }
+                                    }
                                     for (int i = 0; i < row; i++)
                                         for (int j = 0; j < col; j++)
                                             heatmap[i * col + j].adcValue = heatmapValue[i, j];
@@ -126,6 +142,33 @@ namespace uart
             }
             else if (!viewModel_Switch.isStartIcon)
                 viewModel_Switch.isStartIcon = true;
+        }
+
+        private async void toggle_imageCollectSw(object sender, RoutedEventArgs e)
+        {
+            ToggleSwitch imageCollectSw = sender as ToggleSwitch;
+            if (imageCollectSw.IsOn)
+            {
+                FolderPicker folderPicker = new FolderPicker();
+                //var window = WindowHelper.GetWindowForElement(this);
+                var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+                // Initialize the folder picker with the window handle (HWND).
+                WinRT.Interop.InitializeWithWindow.Initialize(folderPicker, hWnd);
+                // Set options for your folder picker
+                folderPicker.SuggestedStartLocation = PickerLocationId.Desktop;
+                folderPicker.FileTypeFilter.Add("*");
+                // Open the picker for the user to pick a folder
+                folder = await folderPicker.PickSingleFolderAsync();
+                if (folder != null)
+                {
+                    StorageApplicationPermissions.FutureAccessList.AddOrReplace("PickedFolderToken", folder);
+                    ts_imageCollect.OnContent = folder.Path;
+                }
+                else
+                    imageCollectSw.IsOn = false;
+            }
+            else
+                folder = null;
         }
 
         //created by bing
