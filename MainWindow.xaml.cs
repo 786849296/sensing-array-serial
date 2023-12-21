@@ -194,5 +194,14 @@ namespace uart
             //storyboard.Begin();
             icon_setting.Rotation = icon_setting.Rotation + 120 % 360;
         }
+
+        private void selectionChanged_rangeCb(object sender, SelectionChangedEventArgs e)
+        {
+            ushort range = Convert.ToUInt16((sender as ComboBox).SelectedValue);
+            foreach (var item in heatmap)
+                item.range = range;
+            if (legendRange != null)
+                legendRange.Text = range.ToString();
+        }
     }
 }
