@@ -10,6 +10,9 @@ using System.Text;
 using System.Threading.Tasks;
 using Windows.UI;
 
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore;
+
 namespace uart
 {
     //转换器，报错
@@ -97,7 +100,9 @@ namespace uart
             float offset = (float)adcValue / (float)range;
             if (offset < 0.01)
                 return Colors.White;
-            float region = offset * 10 / 2;
+            else if (offset > 1)
+                offset = 1;
+            float region = offset * (linearGradientColors.Length - 1);
             if (region == (int)region)
                 return linearGradientColors[(int)region];
             else

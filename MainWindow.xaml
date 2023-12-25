@@ -16,7 +16,8 @@
             <DataTemplate x:Key="itemPixel" x:DataType="local:HeatMap_pixel">
                 <Rectangle Width="20" 
                            Height="20" 
-                           Margin="0 0 0 0">
+                           Margin="0 0 0 0"
+                           Tapped="tapped_pixel">
                     <Rectangle.Fill>
                         <SolidColorBrush Color="{x:Bind GetColor(adcValue), Mode=OneWay}" />
                     </Rectangle.Fill>
@@ -133,6 +134,19 @@
                                           IsOn="False" 
                                           Toggled="toggle_imageCollectSw" 
                                           HeaderTemplate="{StaticResource headerFont}" />
+                            <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
+                            <ComboBox IsEditable="True"
+                                      SelectedIndex="0"
+                                      Header="range"
+                                      Margin="0 12 0 12"
+                                      HeaderTemplate="{StaticResource headerFont}"
+                                      SelectionChanged="selectionChanged_rangeCb">
+                                <x:Int32>4095</x:Int32>
+                                <x:Int32>2048</x:Int32>
+                                <x:Int32>1024</x:Int32>
+                                <x:Int32>512</x:Int32>
+                            </ComboBox>
+                            <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
                         </StackPanel>
                     </PivotItem>
                 </Pivot>
@@ -317,7 +331,8 @@
                                    Grid.Column="1"
                                    VerticalAlignment="Bottom"
                                    HorizontalAlignment="Center"
-                                   Rotation="355">
+                                   Rotation="355"
+                                   Tapped="tapped_pixel">
                             <Rectangle.Fill>
                                 <SolidColorBrush Color="{x:Bind ff[3].GetColor(ff[3].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
@@ -327,7 +342,8 @@
                                    Margin="40 0 0 50"
                                    Grid.Column="2"
                                    VerticalAlignment="Bottom"
-                                   HorizontalAlignment="Center">
+                                   HorizontalAlignment="Center"
+                                   Tapped="tapped_pixel">
                             <Rectangle.Fill>
                                 <SolidColorBrush Color="{x:Bind ff[2].GetColor(ff[2].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
@@ -338,7 +354,8 @@
                                    Grid.Column="3"
                                    VerticalAlignment="Bottom"
                                    HorizontalAlignment="Center"
-                                   Rotation="5">
+                                   Rotation="5"
+                                   Tapped="tapped_pixel">
                             <Rectangle.Fill>
                                 <SolidColorBrush Color="{x:Bind ff[1].GetColor(ff[1].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
@@ -349,7 +366,8 @@
                                    Grid.Column="4"
                                    VerticalAlignment="Bottom"
                                    HorizontalAlignment="Left"
-                                   Rotation="15">
+                                   Rotation="15"
+                                   Tapped="tapped_pixel">
                             <Rectangle.Fill>
                                 <SolidColorBrush Color="{x:Bind ff[0].GetColor(ff[0].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
@@ -360,7 +378,8 @@
                                    Grid.Column="7"
                                    VerticalAlignment="Bottom"
                                    HorizontalAlignment="Right"
-                                   Rotation="5">
+                                   Rotation="5"
+                                   Tapped="tapped_pixel">
                             <Rectangle.Fill>
                                 <SolidColorBrush Color="{x:Bind fb[3].GetColor(fb[3].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
@@ -370,7 +389,8 @@
                                    Margin="0 0 20 50"
                                    Grid.Column="6"
                                    VerticalAlignment="Bottom"
-                                   HorizontalAlignment="Right">
+                                   HorizontalAlignment="Right"
+                                   Tapped="tapped_pixel">
                             <Rectangle.Fill>
                                 <SolidColorBrush Color="{x:Bind fb[2].GetColor(fb[2].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
@@ -381,7 +401,8 @@
                                    Grid.Column="5"
                                    VerticalAlignment="Bottom"
                                    HorizontalAlignment="Right"
-                                   Rotation="355">
+                                   Rotation="355"
+                                   Tapped="tapped_pixel">
                             <Rectangle.Fill>
                                 <SolidColorBrush Color="{x:Bind fb[1].GetColor(fb[1].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
@@ -392,7 +413,8 @@
                                    Grid.Column="5"
                                    VerticalAlignment="Bottom"
                                    HorizontalAlignment="Left"
-                                   Rotation="350">
+                                   Rotation="350"
+                                   Tapped="tapped_pixel">
                             <Rectangle.Fill>
                                 <SolidColorBrush Color="{x:Bind fb[0].GetColor(fb[0].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
@@ -411,7 +433,8 @@
                                    Grid.Column="0"
                                    VerticalAlignment="Center"
                                    HorizontalAlignment="Right"
-                                   Rotation="315">
+                                   Rotation="315"
+                                   Tapped="tapped_pixel">
                             <Rectangle.Fill>
                                 <SolidColorBrush Color="{x:Bind ff[4].GetColor(ff[4].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
@@ -450,7 +473,8 @@
                                    Grid.Column="3"
                                    VerticalAlignment="top"
                                    HorizontalAlignment="Left"
-                                   Rotation="30">
+                                   Rotation="30"
+                                   Tapped="tapped_pixel">
                             <Rectangle.Fill>
                                 <SolidColorBrush Color="{x:Bind fb[4].GetColor(fb[4].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
@@ -517,6 +541,7 @@
                     </Grid.RowDefinitions>
                     <TextBlock Text="4095" 
                                Grid.Row="0"
+                               x:Name="legendRange"
                                HorizontalAlignment="Center" />
                     <Rectangle Grid.Row="1"
                                Margin="0 12 0 12">

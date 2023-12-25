@@ -22,6 +22,9 @@ using System.Diagnostics;
 using Windows.Storage.Pickers;
 using Windows.Storage;
 using Windows.Storage.AccessCache;
+using Microsoft.UI.Xaml.Shapes;
+using Microsoft.UI;
+using Windows.UI;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -43,6 +46,15 @@ namespace uart
         public DispatcherQueueController thread_serialCollect;
         public StorageFolder folder;
 
+        private readonly Color[] legendLinearGradientColors =
+        [
+            Colors.DarkBlue,
+            Colors.Blue,
+            Colors.Cyan,
+            Colors.Yellow,
+            Colors.Red,
+            Colors.DarkRed,
+        ];
         public ObservableCollection<DeviceInformation> comInfos = new();
         internal ViewModel_switch viewModel_Switch = new();
         internal ObservableCollection<HeatMap_pixel> palm = new();
@@ -135,7 +147,10 @@ namespace uart
                                     readerCom = null;
                                     return;
                                 }
+                                //TODO:优化读数顺序
                                 await readerCom.LoadAsync(row * col * 2 + 2);
+                                if (readerCom.UnconsumedBufferLength < row * col * 2 + 2)
+                                    continue;
                                 for (int i = 0; i < row; i++)
                                     for (int j = 0; j < col; j++)
                                         heatmapValue[i, j] = readerCom.ReadUInt16();
@@ -144,6 +159,8 @@ namespace uart
                                 this.DispatcherQueue.TryEnqueue(() => {
                                     //Stopwatch stopwatch = new();
                                     //stopwatch.Start();
+                                    //第一个手套的f4(3,2)点有问题
+                                    heatmapValue[0, 4] = 0;
                                     if (folder != null)
                                     {
                                         string fileName = DateTime.Now.ToString("yyyy-MM-dd HH.mm.ss.fff") + ".csv";
@@ -235,6 +252,8 @@ namespace uart
                     StorageApplicationPermissions.FutureAccessList.AddOrReplace("PickedFolderToken", folder);
                     ts_imageCollect.OnContent = folder.Path;
                 }
+                else
+                    imageCollectSw.IsOn = false;
             }
             else
                 folder = null;
@@ -264,5 +283,97 @@ namespace uart
             icon_setting.Rotation = icon_setting.Rotation + 120 % 360;
         }
 
+        private void selectionChanged_rangeCb(object sender, SelectionChangedEventArgs e)
+        {
+            ushort range = Convert.ToUInt16((sender as ComboBox).SelectedValue);
+            foreach (var item in palm)
+                item.range = range;
+            foreach (var item in f1)
+                item.range = range;
+            foreach (var item in f2)
+                item.range = range;
+            foreach (var item in f3)
+                item.range = range;
+            foreach (var item in f4)
+                item.range = range;
+            foreach (var item in f5)
+                item.range = range;
+            foreach (var item in ff)
+                item.range = range;
+            foreach (var item in fb)
+                item.range = range;
+            if (legendRange != null)
+                legendRange.Text = range.ToString();
+        }
+
+        private void tapped_pixel(object sender, TappedRoutedEventArgs e)
+        {
+            ChartWindow chartLine = new();
+            chartLine.yAxes[0].MaxLimit = Convert.ToInt32(legendRange.Text);
+            chartLine.AppWindow.Resize(new Windows.Graphics.SizeInt32(720, 720));
+            chartLine.Activate();
+            var tokenColor = ((sender as Rectangle).Fill as SolidColorBrush).RegisterPropertyChangedCallback(SolidColorBrush.ColorProperty, (s, dp) => {
+                if (dp == SolidColorBrush.ColorProperty)
+                {
+                    int adcValue = 0;
+                    Color color = (s as SolidColorBrush).Color;
+                    if (color != Colors.White)
+                    {
+                        for (int i = 0; i < legendLinearGradientColors.Length; i++)
+                            if (color == legendLinearGradientColors[i])
+                                // 如果找到，直接返回对应的 ADC 值
+                                adcValue = i * Convert.ToInt32(legendRange.Text) / (legendLinearGradientColors.Length - 1);
+                        if (adcValue == 0)
+                        {
+                            int region = -1;
+                            float offset = 0;
+                            // 遍历颜色数组，查找给定的颜色所在的区间
+                            for (int i = 0; i < legendLinearGradientColors.Length - 1; i++)
+                            {
+                                // 获取区间左端和右端的颜色值
+                                Color c1 = legendLinearGradientColors[i];
+                                Color c2 = legendLinearGradientColors[i + 1];
+                                // 判断给定的颜色是否在区间内，即 R、G、B 值都在区间范围内
+                                if (color.R >= Math.Min(c1.R, c2.R) && color.R <= Math.Max(c1.R, c2.R) &&
+                                    color.G >= Math.Min(c1.G, c2.G) && color.G <= Math.Max(c1.G, c2.G) &&
+                                    color.B >= Math.Min(c1.B, c2.B) && color.B <= Math.Max(c1.B, c2.B))
+                                {
+                                    // 如果在区间内，记录区间索引
+                                    region = i;
+                                    // 解线性方程组，计算 offset 值，这里假设颜色值不为 0
+                                    // 如果颜色值为 0，可以用另一种方法计算 offset，例如使用 G 或 B 值
+                                    if (c2.R - c1.R != 0)
+                                        offset = (float)(color.R - c1.R) / (c2.R - c1.R);
+                                    else if (c2.G - c1.G != 0)
+                                        offset = (float)(color.G - c1.G) / (c2.G - c1.G);
+                                    else if (c2.B - c1.B != 0)
+                                        offset = (float)(color.B - c1.B) / (c2.B - c1.B);
+                                    // 跳出循环
+                                    break;
+                                }
+                            }
+                            // 如果找到了区间，返回 ADC 值，否则返回 0
+                            if (region != -1)
+                                adcValue = (int)((region + offset) * Convert.ToInt32(legendRange.Text) / (legendLinearGradientColors.Length - 1));
+                        }
+                    }
+                    var lineSerieData = chartLine.series[0].Values as ObservableCollection<int>;
+                    lineSerieData.Add(adcValue);
+                    if (lineSerieData.Count > chartLine.xAxes[0].MaxLimit)
+                    {
+                        chartLine.xAxes[0].MaxLimit++;
+                        chartLine.xAxes[0].MinLimit++;
+                    }
+                }
+            });
+            var tokenLegend = legendRange.RegisterPropertyChangedCallback(TextBlock.TextProperty, (s, dp) => {
+                if (dp == TextBlock.TextProperty)
+                    chartLine.yAxes[0].MaxLimit = Convert.ToInt32((s as TextBlock).Text);
+            });
+            chartLine.Closed += (s, e) => {
+                ((sender as Rectangle).Fill as SolidColorBrush).UnregisterPropertyChangedCallback(SolidColorBrush.ColorProperty, tokenColor);
+                legendRange.UnregisterPropertyChangedCallback(TextBlock.TextProperty, tokenLegend);
+            };
+        }
     }
 }
