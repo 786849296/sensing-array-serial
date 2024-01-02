@@ -15,6 +15,11 @@ using System.Runtime.InteropServices.WindowsRuntime;
 using Windows.Foundation;
 using System.Collections.ObjectModel;
 using LiveChartsCore.Kernel.Sketches;
+using LiveChartsCore.SkiaSharpView.WinUI;
+using LiveChartsCore.SkiaSharpView.SKCharts;
+using Windows.Storage.Pickers;
+using Windows.Storage.Provider;
+using Windows.Storage;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -49,6 +54,29 @@ namespace uart
             this.InitializeComponent();
             this.ExtendsContentIntoTitleBar = true;
             this.SetTitleBar(AppTitleBar);
+            this.AppWindow.Closing += (s, e) => lineChart.ContextFlyout.Hide();
+        }
+
+        private async void click_saveCBF(object sender, RoutedEventArgs e)
+        {
+            FileSavePicker savePicker = new();
+            // Retrieve the window handle (HWND) of the current WinUI 3 window.
+            var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            // Initialize the file picker with the window handle (HWND).
+            WinRT.Interop.InitializeWithWindow.Initialize(savePicker, hWnd);
+            // Dropdown of file types the user can save the file as
+            savePicker.FileTypeChoices.Add("line chart", new List<string>() { ".png" });
+            // Open the picker for the user to pick a file
+            StorageFile file = await savePicker.PickSaveFileAsync();
+            if (file != null)
+            {
+                // Prevent updates to the remote version of the file until we finish making changes and call CompleteUpdatesAsync.
+                CachedFileManager.DeferUpdates(file);
+                var skChart = new SKCartesianChart(lineChart);
+                using var stream = await file.OpenStreamForWriteAsync();
+                skChart.SaveImage(stream);
+            }
+            lineChart.ContextFlyout.Hide();
         }
     }
 }

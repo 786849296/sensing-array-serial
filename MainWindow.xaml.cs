@@ -25,6 +25,7 @@ using Windows.Storage.AccessCache;
 using Microsoft.UI.Xaml.Shapes;
 using Microsoft.UI;
 using Windows.UI;
+using Windows.System.Threading;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -40,11 +41,11 @@ namespace uart
         public const ushort col = 16;
         public ushort[,] heatmapValue = new ushort[row, col];
 
-        public SerialDevice com;
-        public string comID;
-        public DataReader readerCom;
-        public DispatcherQueueController thread_serialCollect;
         public StorageFolder folder;
+        private DataReader reader;
+        private SerialDevice com;
+        public nint handleBle = 0;
+        public InMemoryRandomAccessStream bleReadStream;
 
         private readonly Color[] legendLinearGradientColors =
         [
@@ -55,16 +56,19 @@ namespace uart
             Colors.Red,
             Colors.DarkRed,
         ];
-        public ObservableCollection<DeviceInformation> comInfos = new();
+        public ObservableCollection<DeviceInformation> comInfos = [];
+        public ObservableCollection<DeviceInformation> bleInfos = [];
         internal ViewModel_switch viewModel_Switch = new();
-        internal ObservableCollection<HeatMap_pixel> palm = new();
-        internal ObservableCollection<HeatMap_pixel> f1 = new();
-        internal ObservableCollection<HeatMap_pixel> f2 = new();
-        internal ObservableCollection<HeatMap_pixel> f3 = new();
-        internal ObservableCollection<HeatMap_pixel> f4 = new();
-        internal ObservableCollection<HeatMap_pixel> f5 = new();
-        internal ObservableCollection<HeatMap_pixel> ff = new();
-        internal ObservableCollection<HeatMap_pixel> fb = new();
+        internal ObservableCollection<HeatMap_pixel> palm = [];
+        internal ObservableCollection<HeatMap_pixel> f1 = [];
+        internal ObservableCollection<HeatMap_pixel> f2 = [];
+        internal ObservableCollection<HeatMap_pixel> f3 = [];
+        internal ObservableCollection<HeatMap_pixel> f4 = [];
+        internal ObservableCollection<HeatMap_pixel> f5 = [];
+        internal ObservableCollection<HeatMap_pixel> ff = [];
+        internal ObservableCollection<HeatMap_pixel> fb = [];
+        internal bool info_comOpen = true;
+        internal bool info_bleOpen = true;
 
         public MainWindow()
         {
@@ -102,131 +106,156 @@ namespace uart
 
         private async void click_startBtn(object sender, RoutedEventArgs e)
         {
-            if (viewModel_Switch.isStartIcon && combobox_com.SelectedItem != null)
+            if (viewModel_Switch.isStartIcon)
             {
-                try
+                switch (pivot.SelectedIndex)
                 {
-                    com = await SerialDevice.FromIdAsync((combobox_com.SelectedItem as DeviceInformation).Id);
-                    comID = (combobox_com.SelectedItem as DeviceInformation).Id;
-                    if (com != null)
+                case 0:
+                    if (combobox_com.SelectedItem != null)
                     {
-                        readerCom = new(com.InputStream);
-                        readerCom.ByteOrder = ByteOrder.BigEndian;
-                        info_error.IsOpen = false;
-                        com.BaudRate = Convert.ToUInt32(combobox_baud.SelectedValue);
-                        com.DataBits = Convert.ToUInt16(combobox_dataBits.SelectedValue);
-                        com.StopBits = (SerialStopBitCount)combobox_stopBits.SelectedIndex;
-                        com.Parity = (SerialParity)combobox_parity.SelectedIndex;
-                        com.ReadTimeout = TimeSpan.FromMilliseconds(165);
-
-                        info_error.IsOpen = false;
-                        viewModel_Switch.isStartIcon = false;
-
-                        thread_serialCollect = DispatcherQueueController.CreateOnDedicatedThread();
-                        thread_serialCollect.DispatcherQueue.TryEnqueue(async () =>
+                        try
                         {
-                            await readerCom.LoadAsync(row * col * 2);
-                            bool flag_get = false;
-                            while (readerCom.UnconsumedBufferLength > 0)
-                                if (readerCom.ReadByte() == 0xff)
-                                    if (readerCom.ReadByte() == 0xff)
-                                    {
-                                        flag_get = true;
-                                        break;
-                                    }
-                            if (!flag_get)
-                                throw new Exception("未找到帧头");
-                            while (true)
+                            com = await SerialDevice.FromIdAsync((combobox_com.SelectedItem as DeviceInformation).Id);
+                            if (com != null)
                             {
-                                if (viewModel_Switch.isStartIcon)
-                                {
-                                    thread_serialCollect.ShutdownQueueAsync();
-                                    com.Dispose();
-                                    comID = null;
-                                    readerCom.Dispose();
-                                    readerCom = null;
-                                    return;
-                                }
-                                //TODO:优化读数顺序
-                                await readerCom.LoadAsync(row * col * 2 + 2);
-                                if (readerCom.UnconsumedBufferLength < row * col * 2 + 2)
-                                    continue;
-                                for (int i = 0; i < row; i++)
-                                    for (int j = 0; j < col; j++)
-                                        heatmapValue[i, j] = readerCom.ReadUInt16();
-                                if (readerCom.ReadUInt16() != 0xffff)
-                                    throw new Exception("未找到下一帧帧头");
-                                this.DispatcherQueue.TryEnqueue(() => {
-                                    //Stopwatch stopwatch = new();
-                                    //stopwatch.Start();
-                                    //第一个手套的f4(3,2)点有问题
-                                    heatmapValue[0, 4] = 0;
-                                    if (folder != null)
-                                    {
-                                        string fileName = DateTime.Now.ToString("yyyy-MM-dd HH.mm.ss.fff") + ".csv";
-                                        using (var writer = new StreamWriter(System.IO.Path.Combine(folder.Path, fileName)))
-                                            for (int i = 0; i < row; i++)
-                                            {
-                                                for (int j = 0; j < col; j++)
-                                                    writer.Write(heatmapValue[i, j] + ",");
-                                                writer.Write('\n');
-                                            }
-                                    }
-                                    for (int i = 0; i < row; i++)
-                                        for (int j = 0; j < col; j++)
-                                            if (i < 3)
-                                            {
-                                                if (j < 3)
-                                                    f1[8 - (i * 3 + j)].adcValue = heatmapValue[i, j];
-                                                else if (j < 6)
-                                                    f4[8 - (i * 3 + j - 3)].adcValue = heatmapValue[i, j];
-                                                else
-                                                    palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
-                                            }
-                                            else if (i < 6)
-                                            {
-                                                if (j < 3)
-                                                    f2[8 - ((i - 3) * 3 + j)].adcValue = heatmapValue[i, j];
-                                                else if (j < 6)
-                                                    f5[8 - ((i - 3) * 3 + j - 3)].adcValue = heatmapValue[i, j];
-                                                else
-                                                    palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
-                                            }
-                                            else if (i < 9)
-                                            {
-                                                if (j < 3)
-                                                    f3[8 - ((i - 6) * 3 + j)].adcValue = heatmapValue[i, j];
-                                                else if (j < 6)
-                                                {
-                                                    if (i < 8)
-                                                        if (i == 7 && j == 5)
-                                                            fb[0].adcValue = heatmapValue[i, j];
-                                                        else
-                                                            ff[(i - 6) * 3 + j - 3].adcValue = heatmapValue[i, j];
-                                                    else
-                                                        fb[j - 2].adcValue = heatmapValue[i, j];
-                                                }
-                                                else
-                                                    palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
-                                            }
-                                            else
-                                            {
-                                                if (j == 0)
-                                                    fb[4].adcValue = heatmapValue[i, j];
-                                                else if (j >= 6)
-                                                    palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
-                                            }
-                                    //stopwatch.Stop();
-                                    //Debug.WriteLine(stopwatch.Elapsed.TotalMilliseconds);
-                                });
+                                reader = new(com.InputStream) { ByteOrder = ByteOrder.BigEndian };
+                                com.BaudRate = Convert.ToUInt32(combobox_baud.SelectedValue);
+                                com.DataBits = Convert.ToUInt16(combobox_dataBits.SelectedValue);
+                                com.StopBits = (SerialStopBitCount)combobox_stopBits.SelectedIndex;
+                                com.Parity = (SerialParity)combobox_parity.SelectedIndex;
+                                com.ReadTimeout = TimeSpan.FromMilliseconds(165);
+
+                                info_comOpen = false;
+                                info_com.IsOpen = false;
                             }
+                        }
+                        catch (Exception error)
+                        {
+                            info_comOpen = true;
+                            info_com.IsOpen = true;
+                            info_com.Message = error.ToString();
+                            return;
+                        }
+                    }
+                    break;
+
+                case 1:
+                    if (handleBle == 0)
+                    {
+                        info_ble.Message = "蓝牙未连接";
+                        info_ble.IsOpen = true;
+                        info_bleOpen = true;
+                        return;
+                    }
+                    reader = new(bleReadStream.GetInputStreamAt(0)) { ByteOrder = ByteOrder.BigEndian };
+                    info_ble.IsOpen = false;
+                    info_bleOpen = false;
+                    break;
+
+                default:
+                    return;
+                }
+                viewModel_Switch.isStartIcon = false;
+                DispatcherQueueController thread_collect = DispatcherQueueController.CreateOnDedicatedThread();
+                thread_collect.DispatcherQueue.TryEnqueue(async () =>
+                {
+                    await reader.LoadAsync(row * col * 2);
+                    bool flag_get = false;
+                    while (reader.UnconsumedBufferLength > 0)
+                        if (reader.ReadByte() == 0xff)
+                            if (reader.ReadByte() == 0xff)
+                            {
+                                flag_get = true;
+                                break;
+                            }
+                    if (!flag_get)
+                        throw new Exception("未找到帧头");
+                    while (true)
+                    {
+                        if (viewModel_Switch.isStartIcon)
+                        {
+                            thread_collect.ShutdownQueueAsync();
+                            com.Dispose();
+                            reader.Dispose();
+                            return;
+                        }
+                        await reader.LoadAsync(row * col * 2 + 2);
+                        if (reader.UnconsumedBufferLength < row * col * 2 + 2)
+                        {
+                            //TODO：缓兵之计，蓝牙发送慢，这边很快就读完了
+                            System.Threading.Thread.Sleep(165);
+                            continue;
+                        }
+                        for (int i = 0; i < row; i++)
+                            for (int j = 0; j < col; j++)
+                                heatmapValue[i, j] = reader.ReadUInt16();
+                        if (reader.ReadUInt16() != 0xffff)
+                            throw new Exception("未找到下一帧帧头");
+                        this.DispatcherQueue.TryEnqueue(() => {
+                            //Stopwatch stopwatch = new();
+                            //stopwatch.Start();
+                            //第一个手套的f4(3,2)点有问题
+                            //heatmapValue[0, 4] = 0;
+                            if (folder != null)
+                            {
+                                string fileName = DateTime.Now.ToString("yyyy-MM-dd HH.mm.ss.fff") + ".csv";
+                                using var writer = new StreamWriter(System.IO.Path.Combine(folder.Path, fileName));
+                                for (int i = 0; i < row; i++)
+                                {
+                                    for (int j = 0; j < col; j++)
+                                        writer.Write(heatmapValue[i, j] + ",");
+                                    writer.Write('\n');
+                                }
+                            }
+                            for (int i = 0; i < row; i++)
+                                for (int j = 0; j < col; j++)
+                                    if (i < 3)
+                                    {
+                                        if (j < 3)
+                                            f1[8 - (i * 3 + j)].adcValue = heatmapValue[i, j];
+                                        else if (j < 6)
+                                            f4[8 - (i * 3 + j - 3)].adcValue = heatmapValue[i, j];
+                                        else
+                                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
+                                    }
+                                    else if (i < 6)
+                                    {
+                                        if (j < 3)
+                                            f2[8 - ((i - 3) * 3 + j)].adcValue = heatmapValue[i, j];
+                                        else if (j < 6)
+                                            f5[8 - ((i - 3) * 3 + j - 3)].adcValue = heatmapValue[i, j];
+                                        else
+                                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
+                                    }
+                                    else if (i < 9)
+                                    {
+                                        if (j < 3)
+                                            f3[8 - ((i - 6) * 3 + j)].adcValue = heatmapValue[i, j];
+                                        else if (j < 6)
+                                        {
+                                            if (i < 8)
+                                                if (i == 7 && j == 5)
+                                                    fb[0].adcValue = heatmapValue[i, j];
+                                                else
+                                                    ff[(i - 6) * 3 + j - 3].adcValue = heatmapValue[i, j];
+                                            else
+                                                fb[j - 2].adcValue = heatmapValue[i, j];
+                                        }
+                                        else
+                                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
+                                    }
+                                    else
+                                    {
+                                        if (j == 0)
+                                            fb[4].adcValue = heatmapValue[i, j];
+                                        else if (j >= 6)
+                                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
+                                    }
+                            //stopwatch.Stop();
+                            //Debug.WriteLine(stopwatch.Elapsed.TotalMilliseconds);
                         });
                     }
-                } catch (Exception error)
-                {
-                    info_error.IsOpen = true;
-                    info_error.Message = error.ToString();
-                }
+                });
             }
             else if (!viewModel_Switch.isStartIcon)
                 viewModel_Switch.isStartIcon = true;
@@ -237,7 +266,7 @@ namespace uart
             ToggleSwitch imageCollectSw = sender as ToggleSwitch;
             if (imageCollectSw.IsOn)
             {
-                FolderPicker folderPicker = new FolderPicker();
+                FolderPicker folderPicker = new();
                 //var window = WindowHelper.GetWindowForElement(this);
                 var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
                 // Initialize the folder picker with the window handle (HWND).
@@ -374,6 +403,63 @@ namespace uart
                 ((sender as Rectangle).Fill as SolidColorBrush).UnregisterPropertyChangedCallback(SolidColorBrush.ColorProperty, tokenColor);
                 legendRange.UnregisterPropertyChangedCallback(TextBlock.TextProperty, tokenLegend);
             };
+        }
+
+        private void selectionChanged_pivot(object sender, SelectionChangedEventArgs e)
+        {
+            switch (pivot.SelectedIndex)
+            {
+            case 0:
+                info_ble.IsOpen = false;
+                if(info_comOpen)
+                    info_com.IsOpen = true;
+                break;
+            case 1:
+                info_com.IsOpen = false;
+                if (info_bleOpen)
+                    info_ble.IsOpen = true;
+                break;
+            }
+        }
+
+        private void toggled_bleConn(object sender, RoutedEventArgs e)
+        {
+            if ((sender as ToggleSwitch).IsOn)
+                if (combobox_ble.SelectedItem != null)
+                {
+                    ((sender as ToggleSwitch).OnContent as ProgressRing).IsActive = true;
+                    var id = (combobox_ble.SelectedItem as DeviceInformation).Id;
+                    ThreadPool.RunAsync((item) =>
+                    {
+                        bleReadStream = new();
+                        handleBle = CH9140.CH9140UartOpenDevice(id, null, null, (p, buf, len) =>
+                        {
+                            byte[] data = new byte[len];
+                            unsafe
+                            {
+                                //fixed (byte* source = buf)
+                                fixed (byte* destin = data)
+                                    System.Buffer.MemoryCopy((void*)buf, destin, (int)len, (int)len);
+                            }
+                            bleReadStream.WriteAsync(WindowsRuntimeBufferExtensions.AsBuffer(data, 0, (int)len));
+                        });
+                        this.DispatcherQueue.TryEnqueue(() => { 
+                            ((sender as ToggleSwitch).OnContent as ProgressRing).IsActive = false;
+                            //这里转换需要注意，目前将停止位和校验位定死
+                            var success = CH9140.CH9140UartSetSerialBaud(handleBle, Convert.ToInt32(combobox_baud.SelectedValue), Convert.ToInt32(combobox_dataBits.SelectedValue), 1, 0);
+                            bleReadStream.Size = 0;
+                            bleReadStream.Seek(0);
+                        });
+                    });
+                }
+                else
+                    (sender as ToggleSwitch).IsOn = false;
+            else
+            {
+                CH9140.CH9140CloseDevice(handleBle);
+                bleReadStream.Dispose();
+                handleBle = 0;
+            }
         }
     }
 }

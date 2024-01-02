@@ -37,10 +37,18 @@
                            Style="{StaticResource CaptionTextBlockStyle}" />
             </StackPanel>
         </Border>
-        <lvc:CartesianChart Series="{x:Bind series}" 
+        <lvc:CartesianChart x:Name="lineChart"
+                            Series="{x:Bind series}" 
                             Grid.Row="1"
                             ZoomMode="X"
                             XAxes="{x:Bind xAxes}"
-                            YAxes="{x:Bind yAxes}" />
+                            YAxes="{x:Bind yAxes}" >
+            <!--BUG: 关闭窗口前需要先关闭flyout，否则报错-->
+            <lvc:CartesianChart.ContextFlyout>
+                <CommandBarFlyout x:Name="lineChartFlyout">
+                    <AppBarButton Icon="Save" Click="click_saveCBF" />
+                </CommandBarFlyout>
+            </lvc:CartesianChart.ContextFlyout>
+        </lvc:CartesianChart>
     </Grid>
 </Window>

@@ -58,7 +58,9 @@
                    PaneBackground="{StaticResource SystemAccentColorLight3}"
                    Grid.Row="1">
             <SplitView.Pane>
-                <Pivot>
+                <Pivot x:Name="pivot" 
+                       x:FieldModifier="public"
+                       SelectionChanged="selectionChanged_pivot">
                     <PivotItem>
                         <PivotItem.Header>
                             <FontIcon Glyph="&#xE95F;" />
@@ -120,7 +122,29 @@
                         <PivotItem.Header>
                             <FontIcon Glyph="&#xE702;" />
                         </PivotItem.Header>
-                        <StackPanel Orientation="Vertical" Padding="24 24 24 24">
+                        <StackPanel Orientation="Vertical" Padding="12 24 12 24">
+                            <InfoBar Title="CH9143"
+                                     Severity="Informational"
+                                     Message="目前仅支持CH9143蓝牙芯片。当你选择了这个配置页面再点击启动按钮时就会通过蓝牙进行数据采集。CH9143的串口配置由串口页面进行配置。" 
+                                     IsOpen="True"
+                                     Margin="0 0 0 12"/>
+                            <ComboBox x:Name="combobox_ble"
+                                      ItemsSource="{x:Bind bleInfos}"
+                                      DisplayMemberPath="Name"
+                                      Header="ble"
+                                      PlaceholderText="none"
+                                      x:FieldModifier="public"
+                                      Margin="12 0 12 12"
+                                      HeaderTemplate="{StaticResource headerFont}" />
+                            <ToggleSwitch Header="蓝牙连接" 
+                                          OffContent="" 
+                                          Margin="12 0 12 12"
+                                          HeaderTemplate="{StaticResource headerFont}" 
+                                          Toggled="toggled_bleConn">
+                                <ToggleSwitch.OnContent>
+                                    <ProgressRing />
+                                </ToggleSwitch.OnContent>
+                            </ToggleSwitch>
                         </StackPanel>
                     </PivotItem>
                     <PivotItem>
@@ -521,7 +545,7 @@
                     <FontIcon x:Name="icon_switch" 
                               Glyph="{x:Bind viewModel_Switch.boolToGlyph(viewModel_Switch.isStartIcon), Mode=OneWay}"/>
                 </Button>
-                <InfoBar x:Name="info_error"
+                <InfoBar x:Name="info_com"
                          x:FieldModifier="public"
                          Grid.Column="1"
                          Grid.Row="1"
@@ -530,6 +554,16 @@
                          Severity="Error"
                          Title="串口错误"
                          Message="未找到串口"
+                         IsClosable="False" />
+                <InfoBar x:Name="info_ble"
+                         x:FieldModifier="public"
+                         Grid.Column="1"
+                         Grid.Row="1"
+                         Margin="50 0 50 0"
+                         IsOpen="False"
+                         Severity="Error"
+                         Title="蓝牙错误"
+                         Message="未找到蓝牙"
                          IsClosable="False" />
                 <Grid Grid.Row="0"
                       Grid.Column="2"
