@@ -64,31 +64,18 @@ namespace uart
             // Query for extra properties you want returned
             string[] requestedProperties = ["System.Devices.Aep.DeviceAddress", "System.Devices.Aep.IsConnected"];
             DeviceWatcher deviceWatcherBLE = DeviceInformation.CreateWatcher(
-                BluetoothLEDevice.GetDeviceSelectorFromPairingState(false),
+                BluetoothLEDevice.GetDeviceSelectorFromDeviceName("CH9143BLE2U"),
                 requestedProperties,
                 DeviceInformationKind.AssociationEndpoint);
             deviceWatcherBLE.Added += (dw, info) =>
             {
-                if (info.Name.StartsWith("CH9143"))
+                m_window.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Normal, () =>
                 {
-                    m_window.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.Normal, () =>
-                    {
-                        m_window.bleInfos.Add(info);
-                        m_window.combobox_ble.SelectedItem ??= info;
-                        m_window.info_bleOpen = false;
-                        m_window.info_ble.IsOpen = false;
-                    });
-                    //m_window.handleBle = CH9140.CH9140UartOpenDevice(info.Id, null, null, (p, buf, len) =>
-                    //{
-                    //    byte[] data = new byte[len];
-                    //    unsafe {
-                    //        fixed (byte* source = buf)
-                    //        fixed (byte* destin = data)
-                    //            Buffer.MemoryCopy(source, destin, (long)len, (long)len);
-                    //    }
-                    //    m_window.bleReadStream.Write(data, 0, (int)len);
-                    //});
-                }
+                    m_window.bleInfos.Add(info);
+                    m_window.combobox_ble.SelectedItem ??= info;
+                    m_window.info_bleOpen = false;
+                    m_window.info_ble.IsOpen = false;
+                });
             };
             deviceWatcherBLE.Removed += (dw, infoUpdate) => {
                 m_window.DispatcherQueue.TryEnqueue(DispatcherQueuePriority.High, () => {
@@ -115,7 +102,7 @@ namespace uart
             deviceWatcherCOM.Start();
             deviceWatcherBLE.Start();
             m_window.Activate();
-            ThreadPool.RunAsync((item) => CH9140.CH9140Init());
+            //ThreadPool.RunAsync((item) => CH9140.CH9140Init());
         }
 
         private MainWindow m_window;

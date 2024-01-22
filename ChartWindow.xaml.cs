@@ -78,5 +78,12 @@ namespace uart
             }
             lineChart.ContextFlyout.Hide();
         }
+
+        private void click_deleteCBF(object sender, RoutedEventArgs e)
+        {
+            (series[0].Values as ObservableCollection<int>).Clear();
+            xAxes[0].MinLimit = 0;
+            xAxes[0].MaxLimit = 100;
+        }
     }
 }

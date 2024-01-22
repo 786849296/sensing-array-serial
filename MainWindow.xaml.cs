@@ -26,6 +26,7 @@ using Microsoft.UI.Xaml.Shapes;
 using Microsoft.UI;
 using Windows.UI;
 using Windows.System.Threading;
+using Microsoft.UI.Xaml.Media.Imaging;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -39,13 +40,16 @@ namespace uart
     {
         public const ushort row = 10;
         public const ushort col = 16;
-        public ushort[,] heatmapValue = new ushort[row, col];
+        public Queue<ushort[,]> frames = new();
 
-        public StorageFolder folder;
+        private StorageFolder folder;
         private DataReader reader;
         private SerialDevice com;
-        public nint handleBle = 0;
-        public InMemoryRandomAccessStream bleReadStream;
+        private nint? handleBle = null;
+        private InMemoryRandomAccessStream bleReadStream;
+        //private readonly GloveModel model = new();
+        private readonly GloveNet model = new();
+        //private readonly DispatcherQueueController thread_collect = DispatcherQueueController.CreateOnDedicatedThread();
 
         private readonly Color[] legendLinearGradientColors =
         [
@@ -69,6 +73,7 @@ namespace uart
         internal ObservableCollection<HeatMap_pixel> fb = [];
         internal bool info_comOpen = true;
         internal bool info_bleOpen = true;
+        private int lastPivotIndex;
 
         public MainWindow()
         {
@@ -97,6 +102,56 @@ namespace uart
             fb.Add(new HeatMap_pixel(8, 4, 0));
             fb.Add(new HeatMap_pixel(8, 5, 0));
             fb.Add(new HeatMap_pixel(9, 0, 0));
+
+            lastPivotIndex = pivot.SelectedIndex;
+        }
+
+        private void heatMapValue2UI(ushort[,] heatmapValue)
+        {
+            for (int i = 0; i < row; i++)
+                for (int j = 0; j < col; j++)
+                    if (i < 3)
+                    {
+                        if (j < 3)
+                            f1[8 - (i * 3 + j)].adcValue = heatmapValue[i, j];
+                        else if (j < 6)
+                            f4[8 - (i * 3 + j - 3)].adcValue = heatmapValue[i, j];
+                        else
+                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
+                    }
+                    else if (i < 6)
+                    {
+                        if (j < 3)
+                            f2[8 - ((i - 3) * 3 + j)].adcValue = heatmapValue[i, j];
+                        else if (j < 6)
+                            f5[8 - ((i - 3) * 3 + j - 3)].adcValue = heatmapValue[i, j];
+                        else
+                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
+                    }
+                    else if (i < 9)
+                    {
+                        if (j < 3)
+                            f3[8 - ((i - 6) * 3 + j)].adcValue = heatmapValue[i, j];
+                        else if (j < 6)
+                        {
+                            if (i < 8)
+                                if (i == 7 && j == 5)
+                                    fb[0].adcValue = heatmapValue[i, j];
+                                else
+                                    ff[(i - 6) * 3 + j - 3].adcValue = heatmapValue[i, j];
+                            else
+                                fb[j - 2].adcValue = heatmapValue[i, j];
+                        }
+                        else
+                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
+                    }
+                    else
+                    {
+                        if (j == 0)
+                            fb[4].adcValue = heatmapValue[i, j];
+                        else if (j >= 6)
+                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
+                    }
         }
 
         private void click_splitViewPaneBtn(object sender, RoutedEventArgs e)
@@ -106,60 +161,67 @@ namespace uart
 
         private async void click_startBtn(object sender, RoutedEventArgs e)
         {
+            var mode = lastPivotIndex;
             if (viewModel_Switch.isStartIcon)
             {
-                switch (pivot.SelectedIndex)
+                switch (lastPivotIndex)
                 {
-                case 0:
-                    if (combobox_com.SelectedItem != null)
-                    {
-                        try
+                    case 0:
+                        if (combobox_com.SelectedItem != null)
                         {
-                            com = await SerialDevice.FromIdAsync((combobox_com.SelectedItem as DeviceInformation).Id);
-                            if (com != null)
+                            try
                             {
-                                reader = new(com.InputStream) { ByteOrder = ByteOrder.BigEndian };
-                                com.BaudRate = Convert.ToUInt32(combobox_baud.SelectedValue);
-                                com.DataBits = Convert.ToUInt16(combobox_dataBits.SelectedValue);
-                                com.StopBits = (SerialStopBitCount)combobox_stopBits.SelectedIndex;
-                                com.Parity = (SerialParity)combobox_parity.SelectedIndex;
-                                com.ReadTimeout = TimeSpan.FromMilliseconds(165);
+                                com = await SerialDevice.FromIdAsync((combobox_com.SelectedItem as DeviceInformation).Id);
+                                if (com != null)
+                                {
+                                    com.BaudRate = Convert.ToUInt32(combobox_baud.SelectedValue);
+                                    com.DataBits = Convert.ToUInt16(combobox_dataBits.SelectedValue);
+                                    com.StopBits = (SerialStopBitCount)combobox_stopBits.SelectedIndex;
+                                    com.Parity = (SerialParity)combobox_parity.SelectedIndex;
+                                    com.ReadTimeout = TimeSpan.FromMilliseconds(165);
+                                    reader = new(com.InputStream) { ByteOrder = ByteOrder.BigEndian };
 
-                                info_comOpen = false;
-                                info_com.IsOpen = false;
+                                    info_comOpen = false;
+                                    info_com.IsOpen = false;
+                                }
+                            }
+                            catch (Exception error)
+                            {
+                                info_comOpen = true;
+                                info_com.IsOpen = true;
+                                info_com.Message = error.ToString();
+                                return;
                             }
                         }
-                        catch (Exception error)
+                        break;
+
+                    case 1:
+                        if (handleBle == null)
                         {
-                            info_comOpen = true;
-                            info_com.IsOpen = true;
-                            info_com.Message = error.ToString();
+                            info_ble.Message = "蓝牙未连接";
+                            info_ble.IsOpen = true;
+                            info_bleOpen = true;
                             return;
                         }
-                    }
-                    break;
+                        //这里转换需要注意，目前将停止位和校验位定死
+                        var success = CH9140.CH9140UartSetSerialBaud((nint)handleBle, Convert.ToInt32(combobox_baud.SelectedValue), Convert.ToInt32(combobox_dataBits.SelectedValue), 1, 0);
+                        bleReadStream.Size = 0;
+                        bleReadStream.Seek(0);
+                        reader = new(bleReadStream.GetInputStreamAt(0)) { ByteOrder = ByteOrder.BigEndian };
+                        info_ble.IsOpen = false;
+                        info_bleOpen = false;
+                        break;
 
-                case 1:
-                    if (handleBle == 0)
-                    {
-                        info_ble.Message = "蓝牙未连接";
-                        info_ble.IsOpen = true;
-                        info_bleOpen = true;
+                    default:
                         return;
-                    }
-                    reader = new(bleReadStream.GetInputStreamAt(0)) { ByteOrder = ByteOrder.BigEndian };
-                    info_ble.IsOpen = false;
-                    info_bleOpen = false;
-                    break;
-
-                default:
-                    return;
                 }
                 viewModel_Switch.isStartIcon = false;
-                DispatcherQueueController thread_collect = DispatcherQueueController.CreateOnDedicatedThread();
-                thread_collect.DispatcherQueue.TryEnqueue(async () =>
+                //thread_collect.DispatcherQueue.TryEnqueue(async () =>
+                _ = ThreadPool.RunAsync(async (item) =>
                 {
-                    await reader.LoadAsync(row * col * 2);
+                    if (mode == 1)
+                        System.Threading.Thread.Sleep(165);
+                    await reader.LoadAsync(row * col * 2 + 2);
                     bool flag_get = false;
                     while (reader.UnconsumedBufferLength > 0)
                         if (reader.ReadByte() == 0xff)
@@ -172,30 +234,56 @@ namespace uart
                         throw new Exception("未找到帧头");
                     while (true)
                     {
+                        //放线程里面保证com和reader此时未操作
                         if (viewModel_Switch.isStartIcon)
                         {
-                            thread_collect.ShutdownQueueAsync();
-                            com.Dispose();
+                            //thread_collect.ShutdownQueueAsync();
+                            if (mode == 0)
+                                com.Dispose();
                             reader.Dispose();
+                            frames.Clear();
                             return;
                         }
                         await reader.LoadAsync(row * col * 2 + 2);
                         if (reader.UnconsumedBufferLength < row * col * 2 + 2)
                         {
-                            //TODO：缓兵之计，蓝牙发送慢，这边很快就读完了
-                            System.Threading.Thread.Sleep(165);
+                            //保证读取的数据量
+                            if (mode == 1)
+                                System.Threading.Thread.Sleep(85);
                             continue;
                         }
+                        ushort[,] heatmapValue = new ushort[row, col];
                         for (int i = 0; i < row; i++)
                             for (int j = 0; j < col; j++)
                                 heatmapValue[i, j] = reader.ReadUInt16();
                         if (reader.ReadUInt16() != 0xffff)
                             throw new Exception("未找到下一帧帧头");
-                        this.DispatcherQueue.TryEnqueue(() => {
-                            //Stopwatch stopwatch = new();
-                            //stopwatch.Start();
-                            //第一个手套的f4(3,2)点有问题
-                            //heatmapValue[0, 4] = 0;
+                        this.DispatcherQueue.TryEnqueue(() =>
+                        {
+                            if (ts_modelPredict.IsOn)
+                            {
+                                //识别时帧采样的手背及指腹点的阈值（进入识别或退出识别）
+                                const ushort threshold = 150;
+                                ushort[] fb = [heatmapValue[6, 3], heatmapValue[6, 4], heatmapValue[6, 5], heatmapValue[7, 3], heatmapValue[7, 4], heatmapValue[7, 5], heatmapValue[8, 3], heatmapValue[8, 4], heatmapValue[8, 5], heatmapValue[9, 0]];
+                                if (fb.Max() > threshold)
+                                    frames.Enqueue(heatmapValue);
+                                else if (frames.Count > 0)
+                                {
+                                    if (frames.Count >= KeyFrames.framesNum)
+                                    {
+                                        Stopwatch stopwatch = new();
+                                        stopwatch.Start();
+                                        (string label, float val) = model.predict(frames).getResult();
+                                        stopwatch.Stop();
+                                        text_predict.Text = label;
+                                        text_cost.Text = $"frame num: {frames.Count} / time: {stopwatch.Elapsed.TotalMilliseconds:f1} ms";
+                                        image_predict.Source = new BitmapImage(new Uri($"ms-appx:///Assets//{label}.png"));
+                                        text_score.Text = $"{val:f2}%";
+                                        pr_score.Value = val;
+                                    }
+                                    frames.Clear();
+                                }
+                            }
                             if (folder != null)
                             {
                                 string fileName = DateTime.Now.ToString("yyyy-MM-dd HH.mm.ss.fff") + ".csv";
@@ -207,58 +295,18 @@ namespace uart
                                     writer.Write('\n');
                                 }
                             }
-                            for (int i = 0; i < row; i++)
-                                for (int j = 0; j < col; j++)
-                                    if (i < 3)
-                                    {
-                                        if (j < 3)
-                                            f1[8 - (i * 3 + j)].adcValue = heatmapValue[i, j];
-                                        else if (j < 6)
-                                            f4[8 - (i * 3 + j - 3)].adcValue = heatmapValue[i, j];
-                                        else
-                                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
-                                    }
-                                    else if (i < 6)
-                                    {
-                                        if (j < 3)
-                                            f2[8 - ((i - 3) * 3 + j)].adcValue = heatmapValue[i, j];
-                                        else if (j < 6)
-                                            f5[8 - ((i - 3) * 3 + j - 3)].adcValue = heatmapValue[i, j];
-                                        else
-                                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
-                                    }
-                                    else if (i < 9)
-                                    {
-                                        if (j < 3)
-                                            f3[8 - ((i - 6) * 3 + j)].adcValue = heatmapValue[i, j];
-                                        else if (j < 6)
-                                        {
-                                            if (i < 8)
-                                                if (i == 7 && j == 5)
-                                                    fb[0].adcValue = heatmapValue[i, j];
-                                                else
-                                                    ff[(i - 6) * 3 + j - 3].adcValue = heatmapValue[i, j];
-                                            else
-                                                fb[j - 2].adcValue = heatmapValue[i, j];
-                                        }
-                                        else
-                                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
-                                    }
-                                    else
-                                    {
-                                        if (j == 0)
-                                            fb[4].adcValue = heatmapValue[i, j];
-                                        else if (j >= 6)
-                                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
-                                    }
-                            //stopwatch.Stop();
-                            //Debug.WriteLine(stopwatch.Elapsed.TotalMilliseconds);
+                            heatMapValue2UI(heatmapValue);
                         });
                     }
                 });
             }
             else if (!viewModel_Switch.isStartIcon)
+            {
                 viewModel_Switch.isStartIcon = true;
+                info_com.Title = "串口错误";
+                info_com.Severity = InfoBarSeverity.Error;
+                info_com.IsOpen = false;
+            }
         }
 
         private async void toggle_imageCollectSw(object sender, RoutedEventArgs e)
@@ -410,11 +458,13 @@ namespace uart
             switch (pivot.SelectedIndex)
             {
             case 0:
+                lastPivotIndex = 0;
                 info_ble.IsOpen = false;
                 if(info_comOpen)
                     info_com.IsOpen = true;
                 break;
             case 1:
+                lastPivotIndex = 1;
                 info_com.IsOpen = false;
                 if (info_bleOpen)
                     info_ble.IsOpen = true;
@@ -429,7 +479,7 @@ namespace uart
                 {
                     ((sender as ToggleSwitch).OnContent as ProgressRing).IsActive = true;
                     var id = (combobox_ble.SelectedItem as DeviceInformation).Id;
-                    ThreadPool.RunAsync((item) =>
+                    _ = ThreadPool.RunAsync((item) =>
                     {
                         bleReadStream = new();
                         handleBle = CH9140.CH9140UartOpenDevice(id, null, null, (p, buf, len) =>
@@ -443,22 +493,71 @@ namespace uart
                             }
                             bleReadStream.WriteAsync(WindowsRuntimeBufferExtensions.AsBuffer(data, 0, (int)len));
                         });
-                        this.DispatcherQueue.TryEnqueue(() => { 
+                        this.DispatcherQueue.TryEnqueue(() => {
                             ((sender as ToggleSwitch).OnContent as ProgressRing).IsActive = false;
-                            //这里转换需要注意，目前将停止位和校验位定死
-                            var success = CH9140.CH9140UartSetSerialBaud(handleBle, Convert.ToInt32(combobox_baud.SelectedValue), Convert.ToInt32(combobox_dataBits.SelectedValue), 1, 0);
-                            bleReadStream.Size = 0;
-                            bleReadStream.Seek(0);
+                            if (handleBle == null)
+                                (sender as ToggleSwitch).IsOn = false;
                         });
                     });
                 }
                 else
                     (sender as ToggleSwitch).IsOn = false;
+            else if (handleBle != null)
+            {
+                CH9140.CH9140CloseDevice((nint)handleBle);
+                bleReadStream.Dispose();
+                handleBle = null;
+            }
+        }
+
+        private async void click_recurrentBtn(object sender, RoutedEventArgs e)
+        {
+            // Create a file picker
+            var openPicker = new Windows.Storage.Pickers.FileOpenPicker();
+
+            // Retrieve the window handle (HWND) of the current WinUI 3 window.
+            var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+
+            // Initialize the file picker with the window handle (HWND).
+            WinRT.Interop.InitializeWithWindow.Initialize(openPicker, hWnd);
+
+            // Set options for your file picker
+            openPicker.FileTypeFilter.Add(".csv");
+
+            // Open the picker for the user to pick a file
+            var file = await openPicker.PickSingleFileAsync();
+            if (file != null)
+            {
+                // Prevent updates to the remote version of the file until we finish making changes and call CompleteUpdatesAsync.
+                CachedFileManager.DeferUpdates(file);
+                using var stream = await file.OpenReadAsync();
+                using var fr = new StreamReader(stream.AsStreamForRead());
+                string[] colString;
+                ushort[,] heatmapValue = new ushort[row, col];
+                for (int i = 0; i < row; i++)
+                {
+                    colString = fr.ReadLine().Split(',');
+                    for (int j = 0; j < col; j++)
+                        heatmapValue[i, j] = Convert.ToUInt16(colString[j]);
+                }
+                heatMapValue2UI(heatmapValue);
+            }
+        }
+
+        private void toggle_modelPredictSw(object sender, RoutedEventArgs e)
+        {
+            ToggleSwitch modelPredictSw = sender as ToggleSwitch;
+            if (modelPredictSw.IsOn)
+            {
+                // model.initialize();
+                model.loadModel(model.modelLocation);
+                popup_predict.IsOpen = true;
+            }
             else
             {
-                CH9140.CH9140CloseDevice(handleBle);
-                bleReadStream.Dispose();
-                handleBle = 0;
+                model.Dispose();
+                frames.Clear();
+                popup_predict.IsOpen = false;
             }
         }
     }

@@ -47,6 +47,7 @@
             <lvc:CartesianChart.ContextFlyout>
                 <CommandBarFlyout x:Name="lineChartFlyout">
                     <AppBarButton Icon="Save" Click="click_saveCBF" />
+                    <AppBarButton Icon="Delete" Click="click_deleteCBF" />
                 </CommandBarFlyout>
             </lvc:CartesianChart.ContextFlyout>
         </lvc:CartesianChart>

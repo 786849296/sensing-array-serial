@@ -65,21 +65,21 @@
                         <PivotItem.Header>
                             <FontIcon Glyph="&#xE95F;" />
                         </PivotItem.Header>
-                        <StackPanel Orientation="Vertical" Padding="24 24 24 24">
+                        <StackPanel Orientation="Vertical" Padding="12 24 12 24">
                             <ComboBox x:Name="combobox_com"
                                       ItemsSource="{x:Bind comInfos}"
                                       DisplayMemberPath="Name"
                                       Header="com"
                                       PlaceholderText="none"
                                       x:FieldModifier="public"
-                                      Margin="0 0 0 12"
+                                      Margin="12 0 12 12"
                                       HeaderTemplate="{StaticResource headerFont}" />
                             <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
                             <ComboBox IsEditable="True"
                                       x:Name="combobox_baud"
-                                      SelectedIndex="1"
+                                      SelectedIndex="0"
                                       Header="baud"
-                                      Margin="0 12 0 12"
+                                      Margin="12 12 12 12"
                                       HeaderTemplate="{StaticResource headerFont}" >
                                 <x:Int32>115200</x:Int32>
                                 <x:Int32>1000000</x:Int32>
@@ -88,7 +88,7 @@
                             <ComboBox x:Name="combobox_dataBits"
                                       Header="data bits"
                                       SelectedIndex="1"
-                                      Margin="0 12 0 12"
+                                      Margin="12 12 12 12"
                                       HeaderTemplate="{StaticResource headerFont}" >
                                 <x:Int32>7</x:Int32>
                                 <x:Int32>8</x:Int32>
@@ -97,7 +97,7 @@
                             <ComboBox x:Name="combobox_stopBits"
                                       Header="stop bits"
                                       SelectedIndex="0"
-                                      Margin="0 12 0 12"
+                                      Margin="12 12 12 12"
                                       HeaderTemplate="{StaticResource headerFont}" >
                                 <x:String>One</x:String>
                                 <x:String>OnePointFive</x:String>
@@ -107,7 +107,7 @@
                             <ComboBox x:Name="combobox_parity"
                                       Header="parity"
                                       SelectedIndex="0"
-                                      Margin="0 12 0 12"
+                                      Margin="12 12 12 12"
                                       HeaderTemplate="{StaticResource headerFont}" >
                                 <x:String>None</x:String>
                                 <x:String>Odd</x:String>
@@ -130,39 +130,42 @@
                                      Margin="0 0 0 12"/>
                             <ComboBox x:Name="combobox_ble"
                                       ItemsSource="{x:Bind bleInfos}"
-                                      DisplayMemberPath="Name"
+                                      DisplayMemberPath="Id"
                                       Header="ble"
                                       PlaceholderText="none"
                                       x:FieldModifier="public"
                                       Margin="12 0 12 12"
                                       HeaderTemplate="{StaticResource headerFont}" />
+                            <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
                             <ToggleSwitch Header="蓝牙连接" 
                                           OffContent="" 
-                                          Margin="12 0 12 12"
+                                          Margin="12 12 12 0"
                                           HeaderTemplate="{StaticResource headerFont}" 
                                           Toggled="toggled_bleConn">
                                 <ToggleSwitch.OnContent>
                                     <ProgressRing />
                                 </ToggleSwitch.OnContent>
                             </ToggleSwitch>
+                            <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
                         </StackPanel>
                     </PivotItem>
                     <PivotItem>
                         <PivotItem.Header>
                             <FontIcon Glyph="&#xE90F;" />
                         </PivotItem.Header>
-                        <StackPanel Orientation="Vertical" Padding="24 24 24 24">
+                        <StackPanel Orientation="Vertical" Padding="12 24 12 24">
                             <ToggleSwitch x:Name="ts_imageCollect" 
                                           Header="连续采集图像" 
                                           OffContent=""
                                           IsOn="False" 
                                           Toggled="toggle_imageCollectSw" 
-                                          HeaderTemplate="{StaticResource headerFont}" />
+                                          HeaderTemplate="{StaticResource headerFont}"
+                                          Margin="12 0 12 0" />
                             <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
                             <ComboBox IsEditable="True"
                                       SelectedIndex="0"
                                       Header="range"
-                                      Margin="0 12 0 12"
+                                      Margin="12 12 12 12"
                                       HeaderTemplate="{StaticResource headerFont}"
                                       SelectionChanged="selectionChanged_rangeCb">
                                 <x:Int32>4095</x:Int32>
@@ -170,6 +173,18 @@
                                 <x:Int32>1024</x:Int32>
                                 <x:Int32>512</x:Int32>
                             </ComboBox>
+                            <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
+                            <TextBlock Text="触觉复现" FontWeight="Bold" Margin="12 12 12 6" />
+                            <Button Content="选择文件" Margin="12 0 12 12" Click="click_recurrentBtn"/>
+                            <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
+                            <ToggleSwitch x:Name="ts_modelPredict" 
+                                          Header="模型预测" 
+                                          OffContent=""
+                                          OnContent=""
+                                          IsOn="False" 
+                                          Toggled="toggle_modelPredictSw" 
+                                          HeaderTemplate="{StaticResource headerFont}"
+                                          Margin="12 12 12 0" />
                             <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
                         </StackPanel>
                     </PivotItem>
@@ -185,6 +200,45 @@
                     <RowDefinition Height="*" />
                     <RowDefinition Height="75" />
                 </Grid.RowDefinitions>
+                <Popup x:Name="popup_predict"
+                       Grid.Column="1"
+                       Grid.Row="0"
+                       HorizontalAlignment="Right"
+                       VerticalAlignment="Top"
+                       FlowDirection="RightToLeft"
+                       Margin="0 20 20 0"
+                       IsOpen="False">
+                    <Popup.ChildTransitions>
+                        <TransitionCollection>
+                            <PopupThemeTransition />
+                        </TransitionCollection>
+                    </Popup.ChildTransitions>
+                    <Border Background="{ThemeResource FlyoutBackgroundThemeBrush}" 
+                            BorderThickness="2" 
+                            BorderBrush="Purple"
+                            Width="250"
+                            Margin="0 0 0 0"
+                            CornerRadius="20">
+                        <StackPanel>
+                            <Image x:Name="image_predict" Source="Assets\empty.png" Stretch="UniformToFill" Margin="0 0 0 10" />
+                            <TextBlock x:Name="text_predict" FontStyle="Italic" FontWeight="Bold" Text="ClassName" FontSize="16" HorizontalAlignment="Center" />
+                            <TextBlock x:Name="text_cost" Foreground="Red" Text="frames/times" FontSize="16" HorizontalAlignment="Center" />
+                            <RelativePanel Margin="0 10 0 20">
+                                <ProgressRing x:Name="pr_score"
+                                              Width="100" 
+                                              Height="100"
+                                              RelativePanel.AlignHorizontalCenterWithPanel="True"
+                                              RelativePanel.AlignVerticalCenterWithPanel="True"
+                                              Background="LightGray"
+                                              IsIndeterminate="False" />
+                                <StackPanel RelativePanel.AlignHorizontalCenterWithPanel="True"
+                                            RelativePanel.AlignVerticalCenterWithPanel="True">
+                                    <TextBlock x:Name="text_score" HorizontalAlignment="Center" Foreground="Green" Text="score" />
+                                </StackPanel>
+                            </RelativePanel>
+                        </StackPanel>
+                    </Border>
+                </Popup>
                 <Button Click="click_splitViewPaneBtn"
                         Width="42"
                         Height="42"
@@ -230,8 +284,7 @@
                             <ColumnDefinition Width="3*" />
                             <ColumnDefinition Width="3*" />
                             <ColumnDefinition Width="3*" />
-                            <ColumnDefinition Width="3*" />
-                            <ColumnDefinition Width="5*" />
+                            <ColumnDefinition Width="8*" />
                         </Grid.ColumnDefinitions>
                         <GridView ItemsSource="{x:Bind f4}"
                               ItemTemplate="{StaticResource itemPixel}"
@@ -543,7 +596,7 @@
                         VerticalAlignment="Top"
                         HorizontalAlignment="Left">
                     <FontIcon x:Name="icon_switch" 
-                              Glyph="{x:Bind viewModel_Switch.boolToGlyph(viewModel_Switch.isStartIcon), Mode=OneWay}"/>
+                              Glyph="{x:Bind local:ViewModel_switch.boolToGlyph(viewModel_Switch.isStartIcon), Mode=OneWay}"/>
                 </Button>
                 <InfoBar x:Name="info_com"
                          x:FieldModifier="public"

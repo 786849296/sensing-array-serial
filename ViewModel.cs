@@ -52,7 +52,7 @@ namespace uart
             PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
-        public string boolToGlyph(bool isStart)
+        public static string boolToGlyph(bool isStart)
         {
             if (isStart)
                 return "\uE768";
@@ -63,7 +63,7 @@ namespace uart
 
     internal class HeatMap_pixel : INotifyPropertyChanged
     {
-        private Color[] linearGradientColors =
+        private readonly Color[] linearGradientColors =
         [
             Colors.DarkBlue,
             Colors.Blue,
