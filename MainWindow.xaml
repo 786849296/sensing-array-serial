@@ -54,21 +54,21 @@
                             <FontIcon Glyph="&#xE95F;" />
                         </PivotItem.Header>
                         <StackPanel Orientation="Vertical"
-                            Padding="24 24 24 24">
+                            Padding="12 24 12 24">
                             <ComboBox x:Name="combobox_com"
                                 ItemsSource="{x:Bind comInfos}"
                                 DisplayMemberPath="Name"
                                 Header="com"
                                 PlaceholderText="none"
                                 x:FieldModifier="public"
-                                Margin="0 12 0 12"
+                                Margin="12 0 12 12"
                                 HeaderTemplate="{StaticResource headerFont}" />
                             <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
                             <ComboBox IsEditable="True"
                                 x:Name="combobox_baud"
                                 SelectedIndex="1"
                                 Header="baud"
-                                Margin="0 12 0 12"
+                                Margin="12 12 12 12"
                                 HeaderTemplate="{StaticResource headerFont}">
                                 <x:Int32>115200</x:Int32>
                                 <x:Int32>1000000</x:Int32>
@@ -77,7 +77,7 @@
                             <ComboBox x:Name="combobox_dataBits"
                                 Header="data bits"
                                 SelectedIndex="1"
-                                Margin="0 12 0 12"
+                                Margin="12 12 12 12"
                                 HeaderTemplate="{StaticResource headerFont}">
                                 <x:Int32>7</x:Int32>
                                 <x:Int32>8</x:Int32>
@@ -86,7 +86,7 @@
                             <ComboBox x:Name="combobox_stopBits"
                                 Header="stop bits"
                                 SelectedIndex="0"
-                                Margin="0 12 0 12"
+                                Margin="12 12 12 12"
                                 HeaderTemplate="{StaticResource headerFont}" >
                                 <x:String>One</x:String>
                                 <x:String>OnePointFive</x:String>
@@ -96,7 +96,7 @@
                             <ComboBox x:Name="combobox_parity"
                                 Header="parity"
                                 SelectedIndex="0"
-                                Margin="0 12 0 12"
+                                Margin="12 12 12 12"
                                 HeaderTemplate="{StaticResource headerFont}">
                                 <x:String>None</x:String>
                                 <x:String>Odd</x:String>
@@ -109,28 +109,21 @@
                     </PivotItem>
                     <PivotItem>
                         <PivotItem.Header>
-                            <FontIcon Glyph="&#xE702;" />
-                        </PivotItem.Header>
-                        <StackPanel Orientation="Vertical" Padding="24 24 24 24">
-                        </StackPanel>
-                    </PivotItem>
-                    <PivotItem>
-                        <PivotItem.Header>
                             <FontIcon Glyph="&#xE90F;" />
                         </PivotItem.Header>
-                        <StackPanel Orientation="Vertical" Padding="24 24 24 24">
+                        <StackPanel Orientation="Vertical" Padding="12 24 12 24">
                             <ToggleSwitch x:Name="ts_imageCollect" 
                                           Header="连续采集图像" 
                                           OffContent=""
                                           IsOn="False" 
                                           Toggled="toggle_imageCollectSw" 
                                           HeaderTemplate="{StaticResource headerFont}"
-                                          Margin="0 12 0 12"/>
+                                          Margin="12 0 12 0"/>
                             <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
                             <ComboBox IsEditable="True"
                                       SelectedIndex="0"
                                       Header="range"
-                                      Margin="0 12 0 12"
+                                      Margin="12 12 12 12"
                                       HeaderTemplate="{StaticResource headerFont}"
                                       SelectionChanged="selectionChanged_rangeCb">
                                 <x:Int32>4095</x:Int32>
@@ -138,6 +131,9 @@
                                 <x:Int32>1024</x:Int32>
                                 <x:Int32>512</x:Int32>
                             </ComboBox>
+                            <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
+                            <TextBlock Text="触觉复现" FontWeight="Bold" Margin="12 12 12 6" />
+                            <Button Content="选择文件" Margin="12 0 12 12" Click="click_recurrentBtn"/>
                             <Border Height="1" Width="250" BorderThickness="2" BorderBrush="Black" />
                         </StackPanel>
                     </PivotItem>
@@ -190,14 +186,15 @@
                           Grid.Row="0"
                           Grid.Column="1"
                           HorizontalAlignment="Center"
-                          VerticalAlignment="Center">
+                          VerticalAlignment="Center"
+                          ItemClick="click_heatMapItem">
                     <GridView.ItemTemplate>
                         <DataTemplate x:DataType="local:HeatMap_pixel">
                             <Rectangle Width="20" 
                                        Height="20" 
                                        Margin="0 0 0 0">
                                 <Rectangle.Fill>
-                                    <SolidColorBrush Color="{x:Bind GetColor(adcValue), Mode=OneWay}" />
+                                    <SolidColorBrush Color="{x:Bind local:HeatMap_pixelHelper.GetColor(adcValue), Mode=OneWay}" />
                                 </Rectangle.Fill>
                             </Rectangle>
                         </DataTemplate>
@@ -229,7 +226,7 @@
                         VerticalAlignment="Top"
                         HorizontalAlignment="Left">
                     <FontIcon x:Name="icon_switch" 
-                              Glyph="{x:Bind viewModel_Switch.boolToGlyph(viewModel_Switch.isStartIcon), Mode=OneWay}"/>
+                              Glyph="{x:Bind local:ViewModel_switch.boolToGlyph(viewModel_Switch.isStartIcon), Mode=OneWay}"/>
                 </Button>
                 <InfoBar x:Name="info_error"
                          x:FieldModifier="public"
@@ -249,7 +246,7 @@
                         <RowDefinition Height="*" />
                         <RowDefinition Height="16" />
                     </Grid.RowDefinitions>
-                    <TextBlock Text="4095" 
+                    <TextBlock Text="{x:Bind local:HeatMap_pixelHelper.range, Mode=OneWay}" 
                                x:Name="legendRange"
                                Grid.Row="0"
                                HorizontalAlignment="Center" />

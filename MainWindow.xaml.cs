@@ -40,12 +40,12 @@ namespace uart
         public SerialDevice com;
         public string comID;
         public DataReader readerCom;
-        public DispatcherQueueController thread_serialCollect;
+        public DispatcherQueueController thread_serialCollect = DispatcherQueueController.CreateOnDedicatedThread();
         public StorageFolder folder;
 
-        public ObservableCollection<DeviceInformation> comInfos = new();
+        public ObservableCollection<DeviceInformation> comInfos = [];
         internal ViewModel_switch viewModel_Switch = new();
-        internal ObservableCollection<HeatMap_pixel> heatmap = new();
+        internal ObservableCollection<HeatMap_pixel> heatmap = [];
 
         public MainWindow()
         {
@@ -54,7 +54,7 @@ namespace uart
             this.SetTitleBar(AppTitleBar);
             for (int i = 0; i < row; i++)
                 for (int j = 0; j < col; j++)
-                    heatmap.Add(new HeatMap_pixel(i, j, 0));
+                    heatmap.Add(new HeatMap_pixel(i, j));
         }
 
         private void click_splitViewPaneBtn(object sender, RoutedEventArgs e)
@@ -72,8 +72,10 @@ namespace uart
                     comID = (combobox_com.SelectedItem as DeviceInformation).Id;
                     if (com != null)
                     {
-                        readerCom = new(com.InputStream);
-                        readerCom.ByteOrder = ByteOrder.BigEndian;
+                        readerCom = new(com.InputStream)
+                        {
+                            ByteOrder = ByteOrder.BigEndian
+                        };
                         info_error.IsOpen = false;
                         com.BaudRate = Convert.ToUInt32(combobox_baud.SelectedValue);
                         com.DataBits = Convert.ToUInt16(combobox_dataBits.SelectedValue);
@@ -83,8 +85,7 @@ namespace uart
 
                         info_error.IsOpen = false;
                         viewModel_Switch.isStartIcon = false;
-
-                        thread_serialCollect = DispatcherQueueController.CreateOnDedicatedThread();
+                        
                         thread_serialCollect.DispatcherQueue.TryEnqueue(async () =>
                         {
                             await readerCom.LoadAsync(row * col * 2);
@@ -102,7 +103,6 @@ namespace uart
                             {
                                 if (viewModel_Switch.isStartIcon)
                                 {
-                                    thread_serialCollect.ShutdownQueueAsync();
                                     com.Dispose();
                                     comID = null;
                                     readerCom.Dispose();
@@ -129,7 +129,19 @@ namespace uart
                                     }
                                     for (int i = 0; i < row; i++)
                                         for (int j = 0; j < col; j++)
+                                        {
                                             heatmap[i * col + j].adcValue = heatmapValue[i, j];
+                                            if (heatmap[i * col + j].chartLine != null)
+                                            {
+                                                var lineSerieData = heatmap[i * col + j].chartLine.series[0].Values as ObservableCollection<int>;
+                                                lineSerieData.Add(heatmap[i * col + j].adcValue);
+                                                if (lineSerieData.Count > heatmap[i * col + j].chartLine.xAxes[0].MaxLimit)
+                                                {
+                                                    heatmap[i * col + j].chartLine.xAxes[0].MaxLimit++;
+                                                    heatmap[i * col + j].chartLine.xAxes[0].MinLimit++;
+                                                }
+                                            }
+                                        }
                                 });
                             }
                         });
@@ -149,7 +161,7 @@ namespace uart
             ToggleSwitch imageCollectSw = sender as ToggleSwitch;
             if (imageCollectSw.IsOn)
             {
-                FolderPicker folderPicker = new FolderPicker();
+                FolderPicker folderPicker = new();
                 //var window = WindowHelper.GetWindowForElement(this);
                 var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
                 // Initialize the folder picker with the window handle (HWND).
@@ -198,10 +210,65 @@ namespace uart
         private void selectionChanged_rangeCb(object sender, SelectionChangedEventArgs e)
         {
             ushort range = Convert.ToUInt16((sender as ComboBox).SelectedValue);
-            foreach (var item in heatmap)
-                item.range = range;
+            HeatMap_pixelHelper.range = range;
             if (legendRange != null)
                 legendRange.Text = range.ToString();
+        }
+
+        private async void click_recurrentBtn(object sender, RoutedEventArgs e)
+        {
+            // Create a file picker
+            var openPicker = new Windows.Storage.Pickers.FileOpenPicker();
+
+            // Retrieve the window handle (HWND) of the current WinUI 3 window.
+            var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+
+            // Initialize the file picker with the window handle (HWND).
+            WinRT.Interop.InitializeWithWindow.Initialize(openPicker, hWnd);
+
+            // Set options for your file picker
+            openPicker.FileTypeFilter.Add(".csv");
+
+            // Open the picker for the user to pick a file
+            var file = await openPicker.PickSingleFileAsync();
+            if (file != null)
+            {
+                // Prevent updates to the remote version of the file until we finish making changes and call CompleteUpdatesAsync.
+                CachedFileManager.DeferUpdates(file);
+                using var stream = await file.OpenReadAsync();
+                using var fr = new StreamReader(stream.AsStreamForRead());
+                string[] colString;
+                ushort[,] heatmapValue = new ushort[row, col];
+                for (int i = 0; i < row; i++)
+                {
+                    colString = fr.ReadLine().Split(',');
+                    for (int j = 0; j < col; j++)
+                        heatmapValue[i, j] = Convert.ToUInt16(colString[j]);
+                }
+                for (int i = 0; i < row; i++)
+                    for (int j = 0; j < col; j++)
+                        heatmap[i * col + j].adcValue = heatmapValue[i, j];
+            }
+        }
+
+        private void click_heatMapItem(object sender, ItemClickEventArgs e)
+        {
+            var pixel = (e.ClickedItem as HeatMap_pixel);
+            if (pixel.chartLine == null)
+            {
+                pixel.chartLine = new();
+                pixel.chartLine.yAxes[0].MaxLimit = Convert.ToInt32(legendRange.Text);
+                pixel.chartLine.AppWindow.Resize(new Windows.Graphics.SizeInt32(720, 720));
+                pixel.chartLine.Activate();
+                var tokenLegend = legendRange.RegisterPropertyChangedCallback(TextBlock.TextProperty, (s, dp) => {
+                    if (dp == TextBlock.TextProperty)
+                        pixel.chartLine.yAxes[0].MaxLimit = Convert.ToInt32((s as TextBlock).Text);
+                });
+                pixel.chartLine.Closed += (s, e) => {
+                    legendRange.UnregisterPropertyChangedCallback(TextBlock.TextProperty, tokenLegend);
+                    pixel.chartLine = null;
+                };
+            }
         }
     }
 }
