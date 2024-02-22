@@ -10,9 +10,6 @@ using System.Text;
 using System.Threading.Tasks;
 using Windows.UI;
 
-using LiveChartsCore.SkiaSharpView;
-using LiveChartsCore;
-
 namespace uart
 {
     //转换器，报错
@@ -61,23 +58,12 @@ namespace uart
         }
     }
 
-    internal class HeatMap_pixel : INotifyPropertyChanged
+    internal class HeatMap_pixel(int x, int y) : INotifyPropertyChanged
     {
-        private readonly Color[] linearGradientColors =
-        [
-            Colors.DarkBlue,
-            Colors.Blue,
-            Colors.Cyan,
-            Colors.Yellow,
-            Colors.Red,
-            Colors.DarkRed,
-        ];
-        public int x;
-        public int y;
-        //todo: range change
-        public ushort range = 4095;
+        public int x = x;
+        public int y = y;
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
-        private ushort _adcValue;
+        private ushort _adcValue = 0;
         public ushort adcValue
         {
             set
@@ -88,14 +74,27 @@ namespace uart
             get { return _adcValue; }
         }
 
-        public HeatMap_pixel(int x, int y, ushort adcValue)
+        public void OnPropertyChanged([CallerMemberName] string propertyName = null)
         {
-            this.x = x;
-            this.y = y;
-            this.adcValue = adcValue;
+            // Raise the PropertyChanged event, passing the name of the property whose value has changed.
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
+    }
 
-        public Color GetColor(ushort adcValue)
+    internal static class HeatMap_pixelHelper
+    {
+        public static readonly Color[] linearGradientColors =
+        [
+            Colors.DarkBlue,
+            Colors.Blue,
+            Colors.Cyan,
+            Colors.Yellow,
+            Colors.Red,
+            Colors.DarkRed,
+        ];
+        public static ushort range = 4095;
+
+        public static Color GetColor(ushort adcValue)
         {
             float offset = (float)adcValue / (float)range;
             if (offset < 0.01)
@@ -112,12 +111,6 @@ namespace uart
                 byte b = (byte)(linearGradientColors[(int)region].B * (1 - region + (int)region) + linearGradientColors[(int)region + 1].B * (region - (int)region));
                 return Color.FromArgb(0xff, r, g, b);
             }
-        }
-
-        public void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            // Raise the PropertyChanged event, passing the name of the property whose value has changed.
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
     }
 }

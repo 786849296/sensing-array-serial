@@ -51,15 +51,6 @@ namespace uart
         private readonly GloveNet model = new();
         //private readonly DispatcherQueueController thread_collect = DispatcherQueueController.CreateOnDedicatedThread();
 
-        private readonly Color[] legendLinearGradientColors =
-        [
-            Colors.DarkBlue,
-            Colors.Blue,
-            Colors.Cyan,
-            Colors.Yellow,
-            Colors.Red,
-            Colors.DarkRed,
-        ];
         public ObservableCollection<DeviceInformation> comInfos = [];
         public ObservableCollection<DeviceInformation> bleInfos = [];
         internal ViewModel_switch viewModel_Switch = new();
@@ -82,26 +73,26 @@ namespace uart
             this.SetTitleBar(AppTitleBar);
             for (int i = 0; i < 10; i++)
                 for (int j = 0; j < 10; j++)
-                    palm.Add(new HeatMap_pixel(i, j + 6, 0));
+                    palm.Add(new HeatMap_pixel(i, j + 6));
             for (int i = 0; i < 3; i++)
                 for (int j = 0; j < 3; j++)
                 {
-                    f1.Add(new HeatMap_pixel(i, j, 0));
-                    f2.Add(new HeatMap_pixel(i + 3, j, 0));
-                    f3.Add(new HeatMap_pixel(i + 6, j, 0));
-                    f4.Add(new HeatMap_pixel(i, j + 3, 0));
-                    f5.Add(new HeatMap_pixel(i + 3, j + 3, 0));
+                    f1.Add(new HeatMap_pixel(i, j));
+                    f2.Add(new HeatMap_pixel(i + 3, j));
+                    f3.Add(new HeatMap_pixel(i + 6, j));
+                    f4.Add(new HeatMap_pixel(i, j + 3));
+                    f5.Add(new HeatMap_pixel(i + 3, j + 3));
                 }
-            ff.Add(new HeatMap_pixel(6, 3, 0));
-            ff.Add(new HeatMap_pixel(6, 4, 0));
-            ff.Add(new HeatMap_pixel(6, 5, 0));
-            ff.Add(new HeatMap_pixel(7, 3, 0));
-            ff.Add(new HeatMap_pixel(7, 4, 0));
-            fb.Add(new HeatMap_pixel(7, 5, 0));
-            fb.Add(new HeatMap_pixel(8, 3, 0));
-            fb.Add(new HeatMap_pixel(8, 4, 0));
-            fb.Add(new HeatMap_pixel(8, 5, 0));
-            fb.Add(new HeatMap_pixel(9, 0, 0));
+            ff.Add(new HeatMap_pixel(6, 3));
+            ff.Add(new HeatMap_pixel(6, 4));
+            ff.Add(new HeatMap_pixel(6, 5));
+            ff.Add(new HeatMap_pixel(7, 3));
+            ff.Add(new HeatMap_pixel(7, 4));
+            fb.Add(new HeatMap_pixel(7, 5));
+            fb.Add(new HeatMap_pixel(8, 3));
+            fb.Add(new HeatMap_pixel(8, 4));
+            fb.Add(new HeatMap_pixel(8, 5));
+            fb.Add(new HeatMap_pixel(9, 0));
 
             lastPivotIndex = pivot.SelectedIndex;
         }
@@ -260,12 +251,23 @@ namespace uart
                             throw new Exception("未找到下一帧帧头");
                         this.DispatcherQueue.TryEnqueue(() =>
                         {
+                            if (folder != null)
+                            {
+                                string fileName = DateTime.Now.ToString("yyyy-MM-dd HH.mm.ss.fff") + ".csv";
+                                using var writer = new StreamWriter(System.IO.Path.Combine(folder.Path, fileName));
+                                for (int i = 0; i < row; i++)
+                                {
+                                    for (int j = 0; j < col; j++)
+                                        writer.Write(heatmapValue[i, j] + ",");
+                                    writer.Write('\n');
+                                }
+                            }
+                            heatMapValue2UI(heatmapValue);
                             if (ts_modelPredict.IsOn)
                             {
-                                //识别时帧采样的手背及指腹点的阈值（进入识别或退出识别）
-                                const ushort threshold = 150;
-                                ushort[] fb = [heatmapValue[6, 3], heatmapValue[6, 4], heatmapValue[6, 5], heatmapValue[7, 3], heatmapValue[7, 4], heatmapValue[7, 5], heatmapValue[8, 3], heatmapValue[8, 4], heatmapValue[8, 5], heatmapValue[9, 0]];
-                                if (fb.Max() > threshold)
+                                //TODO：识别时帧采样的手背及指腹点的阈值（进入识别或退出识别）
+                                const ushort threshold = 100;
+                                if (fb.Max(i => i.adcValue) > threshold)
                                     frames.Enqueue(heatmapValue);
                                 else if (frames.Count > 0)
                                 {
@@ -284,18 +286,6 @@ namespace uart
                                     frames.Clear();
                                 }
                             }
-                            if (folder != null)
-                            {
-                                string fileName = DateTime.Now.ToString("yyyy-MM-dd HH.mm.ss.fff") + ".csv";
-                                using var writer = new StreamWriter(System.IO.Path.Combine(folder.Path, fileName));
-                                for (int i = 0; i < row; i++)
-                                {
-                                    for (int j = 0; j < col; j++)
-                                        writer.Write(heatmapValue[i, j] + ",");
-                                    writer.Write('\n');
-                                }
-                            }
-                            heatMapValue2UI(heatmapValue);
                         });
                     }
                 });
@@ -363,22 +353,7 @@ namespace uart
         private void selectionChanged_rangeCb(object sender, SelectionChangedEventArgs e)
         {
             ushort range = Convert.ToUInt16((sender as ComboBox).SelectedValue);
-            foreach (var item in palm)
-                item.range = range;
-            foreach (var item in f1)
-                item.range = range;
-            foreach (var item in f2)
-                item.range = range;
-            foreach (var item in f3)
-                item.range = range;
-            foreach (var item in f4)
-                item.range = range;
-            foreach (var item in f5)
-                item.range = range;
-            foreach (var item in ff)
-                item.range = range;
-            foreach (var item in fb)
-                item.range = range;
+            HeatMap_pixelHelper.range = range;
             if (legendRange != null)
                 legendRange.Text = range.ToString();
         }
@@ -396,20 +371,20 @@ namespace uart
                     Color color = (s as SolidColorBrush).Color;
                     if (color != Colors.White)
                     {
-                        for (int i = 0; i < legendLinearGradientColors.Length; i++)
-                            if (color == legendLinearGradientColors[i])
+                        for (int i = 0; i < HeatMap_pixelHelper.linearGradientColors.Length; i++)
+                            if (color == HeatMap_pixelHelper.linearGradientColors[i])
                                 // 如果找到，直接返回对应的 ADC 值
-                                adcValue = i * Convert.ToInt32(legendRange.Text) / (legendLinearGradientColors.Length - 1);
+                                adcValue = i * Convert.ToInt32(legendRange.Text) / (HeatMap_pixelHelper.linearGradientColors.Length - 1);
                         if (adcValue == 0)
                         {
                             int region = -1;
                             float offset = 0;
                             // 遍历颜色数组，查找给定的颜色所在的区间
-                            for (int i = 0; i < legendLinearGradientColors.Length - 1; i++)
+                            for (int i = 0; i < HeatMap_pixelHelper.linearGradientColors.Length - 1; i++)
                             {
                                 // 获取区间左端和右端的颜色值
-                                Color c1 = legendLinearGradientColors[i];
-                                Color c2 = legendLinearGradientColors[i + 1];
+                                Color c1 = HeatMap_pixelHelper.linearGradientColors[i];
+                                Color c2 = HeatMap_pixelHelper.linearGradientColors[i + 1];
                                 // 判断给定的颜色是否在区间内，即 R、G、B 值都在区间范围内
                                 if (color.R >= Math.Min(c1.R, c2.R) && color.R <= Math.Max(c1.R, c2.R) &&
                                     color.G >= Math.Min(c1.G, c2.G) && color.G <= Math.Max(c1.G, c2.G) &&
@@ -431,7 +406,7 @@ namespace uart
                             }
                             // 如果找到了区间，返回 ADC 值，否则返回 0
                             if (region != -1)
-                                adcValue = (int)((region + offset) * Convert.ToInt32(legendRange.Text) / (legendLinearGradientColors.Length - 1));
+                                adcValue = (int)((region + offset) * Convert.ToInt32(legendRange.Text) / (HeatMap_pixelHelper.linearGradientColors.Length - 1));
                         }
                     }
                     var lineSerieData = chartLine.series[0].Values as ObservableCollection<int>;

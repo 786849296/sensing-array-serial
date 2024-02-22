@@ -14,7 +14,7 @@ namespace uart
     {
         // Info：和数据集最大值挂钩，用于归一化，注意及时修改
         private const float _max = 3533;
-        public const int framesNum = 10;
+        public const int framesNum = 9;
 
         [ColumnName("input")]
         [VectorType(framesNum, 10, 16)]
@@ -101,9 +101,9 @@ namespace uart
     //using Microsoft.ML;
     internal class GloveNet : IDisposable
     {
-        public string modelLocation = "Assets/R3d18.onnx";
+        public string modelLocation = "Assets\\GloveNet.onnx";
 
-        private MLContext mlContext = new();
+        private readonly MLContext mlContext = new();
         public PredictionEngine<KeyFrames, Label> predictor;
 
         public static string GetAbsolutePath(string relativePath)
@@ -129,12 +129,12 @@ namespace uart
             var data1 = mlContext.Data.LoadFromEnumerable(PressureFrames.createFromFrames(frames));
             var pipeline = //mlContext.Transforms.ProjectToPrincipalComponents("Features", "clusterInput", rank: 10)
                 mlContext.Transforms.NormalizeMinMax("Features", "clusterInput", fixZero: false)
-                .Append(mlContext.Clustering.Trainers.KMeans(numberOfClusters: 10));
+                .Append(mlContext.Clustering.Trainers.KMeans(numberOfClusters: 9));
             var model = pipeline.Fit(data1);
             var transformedData = model.Transform(data1);
             var results = mlContext.Data.CreateEnumerable<ClusterResult>(transformedData, reuseRowObject: false);
 
-            ushort[][,] keyFrames = new ushort[10][,];
+            ushort[][,] keyFrames = new ushort[KeyFrames.framesNum][,];
             bool[] isHaveCluster = [false, false, false, false, false, false, false, false, false, false];
             int len = 0;
             for (int i = 0; i < results.Count(); i++)

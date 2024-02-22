@@ -19,7 +19,7 @@
                            Margin="0 0 0 0"
                            Tapped="tapped_pixel">
                     <Rectangle.Fill>
-                        <SolidColorBrush Color="{x:Bind GetColor(adcValue), Mode=OneWay}" />
+                        <SolidColorBrush Color="{x:Bind local:HeatMap_pixelHelper.GetColor(adcValue), Mode=OneWay}" />
                     </Rectangle.Fill>
                 </Rectangle>
             </DataTemplate>
@@ -411,7 +411,7 @@
                                    Rotation="355"
                                    Tapped="tapped_pixel">
                             <Rectangle.Fill>
-                                <SolidColorBrush Color="{x:Bind ff[3].GetColor(ff[3].adcValue), Mode=OneWay}" />
+                                <SolidColorBrush Color="{x:Bind local:HeatMap_pixelHelper.GetColor(ff[3].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
                         </Rectangle>
                         <Rectangle Width="20" 
@@ -422,7 +422,7 @@
                                    HorizontalAlignment="Center"
                                    Tapped="tapped_pixel">
                             <Rectangle.Fill>
-                                <SolidColorBrush Color="{x:Bind ff[2].GetColor(ff[2].adcValue), Mode=OneWay}" />
+                                <SolidColorBrush Color="{x:Bind local:HeatMap_pixelHelper.GetColor(ff[2].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
                         </Rectangle>
                         <Rectangle Width="20" 
@@ -434,7 +434,7 @@
                                    Rotation="5"
                                    Tapped="tapped_pixel">
                             <Rectangle.Fill>
-                                <SolidColorBrush Color="{x:Bind ff[1].GetColor(ff[1].adcValue), Mode=OneWay}" />
+                                <SolidColorBrush Color="{x:Bind local:HeatMap_pixelHelper.GetColor(ff[1].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
                         </Rectangle>
                         <Rectangle Width="20" 
@@ -446,7 +446,7 @@
                                    Rotation="15"
                                    Tapped="tapped_pixel">
                             <Rectangle.Fill>
-                                <SolidColorBrush Color="{x:Bind ff[0].GetColor(ff[0].adcValue), Mode=OneWay}" />
+                                <SolidColorBrush Color="{x:Bind local:HeatMap_pixelHelper.GetColor(ff[0].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
                         </Rectangle>
                         <Rectangle Width="20" 
@@ -458,7 +458,7 @@
                                    Rotation="5"
                                    Tapped="tapped_pixel">
                             <Rectangle.Fill>
-                                <SolidColorBrush Color="{x:Bind fb[3].GetColor(fb[3].adcValue), Mode=OneWay}" />
+                                <SolidColorBrush Color="{x:Bind local:HeatMap_pixelHelper.GetColor(fb[3].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
                         </Rectangle>
                         <Rectangle Width="20" 
@@ -469,7 +469,7 @@
                                    HorizontalAlignment="Right"
                                    Tapped="tapped_pixel">
                             <Rectangle.Fill>
-                                <SolidColorBrush Color="{x:Bind fb[2].GetColor(fb[2].adcValue), Mode=OneWay}" />
+                                <SolidColorBrush Color="{x:Bind local:HeatMap_pixelHelper.GetColor(fb[2].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
                         </Rectangle>
                         <Rectangle Width="20" 
@@ -481,7 +481,7 @@
                                    Rotation="355"
                                    Tapped="tapped_pixel">
                             <Rectangle.Fill>
-                                <SolidColorBrush Color="{x:Bind fb[1].GetColor(fb[1].adcValue), Mode=OneWay}" />
+                                <SolidColorBrush Color="{x:Bind local:HeatMap_pixelHelper.GetColor(fb[1].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
                         </Rectangle>
                         <Rectangle Width="20" 
@@ -493,7 +493,7 @@
                                    Rotation="350"
                                    Tapped="tapped_pixel">
                             <Rectangle.Fill>
-                                <SolidColorBrush Color="{x:Bind fb[0].GetColor(fb[0].adcValue), Mode=OneWay}" />
+                                <SolidColorBrush Color="{x:Bind local:HeatMap_pixelHelper.GetColor(fb[0].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
                         </Rectangle>
                     </Grid>
@@ -513,7 +513,7 @@
                                    Rotation="315"
                                    Tapped="tapped_pixel">
                             <Rectangle.Fill>
-                                <SolidColorBrush Color="{x:Bind ff[4].GetColor(ff[4].adcValue), Mode=OneWay}" />
+                                <SolidColorBrush Color="{x:Bind local:HeatMap_pixelHelper.GetColor(ff[4].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
                         </Rectangle>
                         <GridView ItemsSource="{x:Bind palm}"
@@ -553,7 +553,7 @@
                                    Rotation="30"
                                    Tapped="tapped_pixel">
                             <Rectangle.Fill>
-                                <SolidColorBrush Color="{x:Bind fb[4].GetColor(fb[4].adcValue), Mode=OneWay}" />
+                                <SolidColorBrush Color="{x:Bind local:HeatMap_pixelHelper.GetColor(fb[4].adcValue), Mode=OneWay}" />
                             </Rectangle.Fill>
                         </Rectangle>
                         <GridView ItemsSource="{x:Bind f5}"
