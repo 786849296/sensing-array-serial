@@ -17,16 +17,12 @@ using Windows.Devices.SerialCommunication;
 using System.Collections.ObjectModel;
 using Windows.Devices.Enumeration;
 using Windows.Storage.Streams;
-using Microsoft.UI.Dispatching;
-using System.Diagnostics;
 using Windows.Storage.Pickers;
 using Windows.Storage;
 using Windows.Storage.AccessCache;
-using Microsoft.UI.Xaml.Shapes;
-using Microsoft.UI;
-using Windows.UI;
 using Windows.System.Threading;
-using Microsoft.UI.Xaml.Media.Imaging;
+using LiveChartsCore.SkiaSharpView.SKCharts;
+using LiveChartsCore.SkiaSharpView.WinUI;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -38,9 +34,8 @@ namespace uart
     /// </summary>
     public sealed partial class MainWindow : Window
     {
-        public const ushort row = 10;
-        public const ushort col = 16;
-        public Queue<ushort[,]> frames = new();
+        public const ushort row = 32;
+        public const ushort col = 32;
 
         private StorageFolder folder;
         private DataReader reader;
@@ -48,7 +43,6 @@ namespace uart
         private nint? handleBle = null;
         private InMemoryRandomAccessStream bleReadStream;
         //private readonly GloveModel model = new();
-        private readonly GloveNet model = new();
         //private readonly DispatcherQueueController thread_collect = DispatcherQueueController.CreateOnDedicatedThread();
 
         public ObservableCollection<DeviceInformation> comInfos = [];
@@ -59,9 +53,7 @@ namespace uart
         internal ObservableCollection<HeatMap_pixel> f2 = [];
         internal ObservableCollection<HeatMap_pixel> f3 = [];
         internal ObservableCollection<HeatMap_pixel> f4 = [];
-        internal ObservableCollection<HeatMap_pixel> f5 = [];
-        internal ObservableCollection<HeatMap_pixel> ff = [];
-        internal ObservableCollection<HeatMap_pixel> fb = [];
+        internal ObservableCollection<ViewModel_lineChart> lineCharts = [];
         internal bool info_comOpen = true;
         internal bool info_bleOpen = true;
         private int lastPivotIndex;
@@ -71,28 +63,17 @@ namespace uart
             this.InitializeComponent();
             this.ExtendsContentIntoTitleBar = true;
             this.SetTitleBar(AppTitleBar);
-            for (int i = 0; i < 10; i++)
-                for (int j = 0; j < 10; j++)
-                    palm.Add(new HeatMap_pixel(i, j + 6));
-            for (int i = 0; i < 3; i++)
-                for (int j = 0; j < 3; j++)
+            for (int i = 0; i < 7; i++)
+                for (int j = 0; j < 8; j++)
+                    palm.Add(new HeatMap_pixel(i, j));
+            for (int i = 0; i < 24; i++)
+                for (int j = 0; j < 8; j++)
                 {
                     f1.Add(new HeatMap_pixel(i, j));
-                    f2.Add(new HeatMap_pixel(i + 3, j));
-                    f3.Add(new HeatMap_pixel(i + 6, j));
-                    f4.Add(new HeatMap_pixel(i, j + 3));
-                    f5.Add(new HeatMap_pixel(i + 3, j + 3));
+                    f2.Add(new HeatMap_pixel(i, j));
+                    f3.Add(new HeatMap_pixel(i, j));
+                    f4.Add(new HeatMap_pixel(i, j));
                 }
-            ff.Add(new HeatMap_pixel(6, 3));
-            ff.Add(new HeatMap_pixel(6, 4));
-            ff.Add(new HeatMap_pixel(6, 5));
-            ff.Add(new HeatMap_pixel(7, 3));
-            ff.Add(new HeatMap_pixel(7, 4));
-            fb.Add(new HeatMap_pixel(7, 5));
-            fb.Add(new HeatMap_pixel(8, 3));
-            fb.Add(new HeatMap_pixel(8, 4));
-            fb.Add(new HeatMap_pixel(8, 5));
-            fb.Add(new HeatMap_pixel(9, 0));
 
             lastPivotIndex = pivot.SelectedIndex;
         }
@@ -101,47 +82,30 @@ namespace uart
         {
             for (int i = 0; i < row; i++)
                 for (int j = 0; j < col; j++)
-                    if (i < 3)
-                    {
-                        if (j < 3)
-                            f1[8 - (i * 3 + j)].adcValue = heatmapValue[i, j];
-                        else if (j < 6)
-                            f4[8 - (i * 3 + j - 3)].adcValue = heatmapValue[i, j];
-                        else
-                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
-                    }
-                    else if (i < 6)
-                    {
-                        if (j < 3)
-                            f2[8 - ((i - 3) * 3 + j)].adcValue = heatmapValue[i, j];
-                        else if (j < 6)
-                            f5[8 - ((i - 3) * 3 + j - 3)].adcValue = heatmapValue[i, j];
-                        else
-                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
-                    }
-                    else if (i < 9)
-                    {
-                        if (j < 3)
-                            f3[8 - ((i - 6) * 3 + j)].adcValue = heatmapValue[i, j];
-                        else if (j < 6)
+                    if (i < 24)
+                        switch (j / 8)
                         {
-                            if (i < 8)
-                                if (i == 7 && j == 5)
-                                    fb[0].adcValue = heatmapValue[i, j];
-                                else
-                                    ff[(i - 6) * 3 + j - 3].adcValue = heatmapValue[i, j];
-                            else
-                                fb[j - 2].adcValue = heatmapValue[i, j];
+                        case 0:
+                            f1[i * 8 + j].adcValue = heatmapValue[i, j];
+                            f1[i * 8 + j].chartLine?.chartUpdate(f1[i * 8 + j].adcValue);
+                            break;
+                        case 1:
+                            f2[i * 8 + j - 8].adcValue = heatmapValue[i, j];
+                            f2[i * 8 + j - 8].chartLine?.chartUpdate(f2[i * 8 + j - 8].adcValue);
+                            break;
+                        case 2:
+                            f3[i * 8 + j - 16].adcValue = heatmapValue[i, j];
+                            f3[i * 8 + j - 16].chartLine?.chartUpdate(f3[i * 8 + j - 16].adcValue);
+                            break;
+                        case 3:
+                            f4[i * 8 + j - 24].adcValue = heatmapValue[i, j];
+                            f4[i * 8 + j - 24].chartLine?.chartUpdate(f4[i * 8 + j - 24].adcValue);
+                            break;
                         }
-                        else
-                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
-                    }
-                    else
+                    else if (i < 31 && j < 8)
                     {
-                        if (j == 0)
-                            fb[4].adcValue = heatmapValue[i, j];
-                        else if (j >= 6)
-                            palm[i * 10 + j - 6].adcValue = heatmapValue[i, j];
+                        palm[(i - 24) * 8 + j].adcValue = heatmapValue[i, j];
+                        palm[(i - 24) * 8 + j].chartLine?.chartUpdate(palm[(i - 24) * 8 + j].adcValue);
                     }
         }
 
@@ -232,7 +196,6 @@ namespace uart
                             if (mode == 0)
                                 com.Dispose();
                             reader.Dispose();
-                            frames.Clear();
                             return;
                         }
                         await reader.LoadAsync(row * col * 2 + 2);
@@ -263,29 +226,6 @@ namespace uart
                                 }
                             }
                             heatMapValue2UI(heatmapValue);
-                            if (ts_modelPredict.IsOn)
-                            {
-                                //TODO：识别时帧采样的手背及指腹点的阈值（进入识别或退出识别）
-                                const ushort threshold = 100;
-                                if (fb.Max(i => i.adcValue) > threshold)
-                                    frames.Enqueue(heatmapValue);
-                                else if (frames.Count > 0)
-                                {
-                                    if (frames.Count >= KeyFrames.framesNum)
-                                    {
-                                        Stopwatch stopwatch = new();
-                                        stopwatch.Start();
-                                        (string label, float val) = model.predict(frames).getResult();
-                                        stopwatch.Stop();
-                                        text_predict.Text = label;
-                                        text_cost.Text = $"frame num: {frames.Count} / time: {stopwatch.Elapsed.TotalMilliseconds:f1} ms";
-                                        image_predict.Source = new BitmapImage(new Uri($"ms-appx:///Assets//{label}.png"));
-                                        text_score.Text = $"{val:f2}%";
-                                        pr_score.Value = val;
-                                    }
-                                    frames.Clear();
-                                }
-                            }
                         });
                     }
                 });
@@ -356,76 +296,6 @@ namespace uart
             HeatMap_pixelHelper.range = range;
             if (legendRange != null)
                 legendRange.Text = range.ToString();
-        }
-
-        private void tapped_pixel(object sender, TappedRoutedEventArgs e)
-        {
-            ChartWindow chartLine = new();
-            chartLine.yAxes[0].MaxLimit = Convert.ToInt32(legendRange.Text);
-            chartLine.AppWindow.Resize(new Windows.Graphics.SizeInt32(720, 720));
-            chartLine.Activate();
-            var tokenColor = ((sender as Rectangle).Fill as SolidColorBrush).RegisterPropertyChangedCallback(SolidColorBrush.ColorProperty, (s, dp) => {
-                if (dp == SolidColorBrush.ColorProperty)
-                {
-                    int adcValue = 0;
-                    Color color = (s as SolidColorBrush).Color;
-                    if (color != Colors.White)
-                    {
-                        for (int i = 0; i < HeatMap_pixelHelper.linearGradientColors.Length; i++)
-                            if (color == HeatMap_pixelHelper.linearGradientColors[i])
-                                // 如果找到，直接返回对应的 ADC 值
-                                adcValue = i * Convert.ToInt32(legendRange.Text) / (HeatMap_pixelHelper.linearGradientColors.Length - 1);
-                        if (adcValue == 0)
-                        {
-                            int region = -1;
-                            float offset = 0;
-                            // 遍历颜色数组，查找给定的颜色所在的区间
-                            for (int i = 0; i < HeatMap_pixelHelper.linearGradientColors.Length - 1; i++)
-                            {
-                                // 获取区间左端和右端的颜色值
-                                Color c1 = HeatMap_pixelHelper.linearGradientColors[i];
-                                Color c2 = HeatMap_pixelHelper.linearGradientColors[i + 1];
-                                // 判断给定的颜色是否在区间内，即 R、G、B 值都在区间范围内
-                                if (color.R >= Math.Min(c1.R, c2.R) && color.R <= Math.Max(c1.R, c2.R) &&
-                                    color.G >= Math.Min(c1.G, c2.G) && color.G <= Math.Max(c1.G, c2.G) &&
-                                    color.B >= Math.Min(c1.B, c2.B) && color.B <= Math.Max(c1.B, c2.B))
-                                {
-                                    // 如果在区间内，记录区间索引
-                                    region = i;
-                                    // 解线性方程组，计算 offset 值，这里假设颜色值不为 0
-                                    // 如果颜色值为 0，可以用另一种方法计算 offset，例如使用 G 或 B 值
-                                    if (c2.R - c1.R != 0)
-                                        offset = (float)(color.R - c1.R) / (c2.R - c1.R);
-                                    else if (c2.G - c1.G != 0)
-                                        offset = (float)(color.G - c1.G) / (c2.G - c1.G);
-                                    else if (c2.B - c1.B != 0)
-                                        offset = (float)(color.B - c1.B) / (c2.B - c1.B);
-                                    // 跳出循环
-                                    break;
-                                }
-                            }
-                            // 如果找到了区间，返回 ADC 值，否则返回 0
-                            if (region != -1)
-                                adcValue = (int)((region + offset) * Convert.ToInt32(legendRange.Text) / (HeatMap_pixelHelper.linearGradientColors.Length - 1));
-                        }
-                    }
-                    var lineSerieData = chartLine.series[0].Values as ObservableCollection<int>;
-                    lineSerieData.Add(adcValue);
-                    if (lineSerieData.Count > chartLine.xAxes[0].MaxLimit)
-                    {
-                        chartLine.xAxes[0].MaxLimit++;
-                        chartLine.xAxes[0].MinLimit++;
-                    }
-                }
-            });
-            var tokenLegend = legendRange.RegisterPropertyChangedCallback(TextBlock.TextProperty, (s, dp) => {
-                if (dp == TextBlock.TextProperty)
-                    chartLine.yAxes[0].MaxLimit = Convert.ToInt32((s as TextBlock).Text);
-            });
-            chartLine.Closed += (s, e) => {
-                ((sender as Rectangle).Fill as SolidColorBrush).UnregisterPropertyChangedCallback(SolidColorBrush.ColorProperty, tokenColor);
-                legendRange.UnregisterPropertyChangedCallback(TextBlock.TextProperty, tokenLegend);
-            };
         }
 
         private void selectionChanged_pivot(object sender, SelectionChangedEventArgs e)
@@ -519,21 +389,51 @@ namespace uart
             }
         }
 
-        private void toggle_modelPredictSw(object sender, RoutedEventArgs e)
+        private void click_heatMapItem(object sender, ItemClickEventArgs e)
         {
-            ToggleSwitch modelPredictSw = sender as ToggleSwitch;
-            if (modelPredictSw.IsOn)
+            var pixel = (e.ClickedItem as HeatMap_pixel);
+            if (pixel.chartLine == null)
             {
-                // model.initialize();
-                model.loadModel(model.modelLocation);
-                popup_predict.IsOpen = true;
+                pixel.chartLine = new(pixel);
+                pixel.chartLine.yAxes[0].MaxLimit = Convert.ToInt32(legendRange.Text);
+                lineCharts.Add(pixel.chartLine);
+                pixel.chartLine.tokenLegend = legendRange.RegisterPropertyChangedCallback(TextBlock.TextProperty, (s, dp) => {
+                    if (dp == TextBlock.TextProperty)
+                        pixel.chartLine.yAxes[0].MaxLimit = Convert.ToInt32((s as TextBlock).Text);
+                });
             }
-            else
+        }
+
+        private async void click_CBFSaveIcon(object sender, RoutedEventArgs e)
+        {
+            var lineChart = (sender as AppBarButton).CommandParameter as CartesianChart;
+            FileSavePicker savePicker = new();
+            // Retrieve the window handle (HWND) of the current WinUI 3 window.
+            var hWnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            // Initialize the file picker with the window handle (HWND).
+            WinRT.Interop.InitializeWithWindow.Initialize(savePicker, hWnd);
+            // Dropdown of file types the user can save the file as
+            savePicker.FileTypeChoices.Add("line chart", [".png"]);
+            // Open the picker for the user to pick a file
+            StorageFile file = await savePicker.PickSaveFileAsync();
+            if (file != null)
             {
-                model.Dispose();
-                frames.Clear();
-                popup_predict.IsOpen = false;
+                // Prevent updates to the remote version of the file until we finish making changes and call CompleteUpdatesAsync.
+                CachedFileManager.DeferUpdates(file);
+                var skChart = new SKCartesianChart(lineChart);
+                using var stream = await file.OpenStreamForWriteAsync();
+                skChart.SaveImage(stream);
             }
+            lineChart.ContextFlyout.Hide();
+        }
+
+        private void click_CBFDeleteIcon(object sender, RoutedEventArgs e)
+        {
+            var chartLine = (sender as AppBarButton).CommandParameter as ViewModel_lineChart;
+            lineCharts.Remove(chartLine);
+            (chartLine.series[0].Values as ObservableCollection<int>).Clear();
+            legendRange.UnregisterPropertyChangedCallback(TextBlock.TextProperty, chartLine.tokenLegend);
+            chartLine.parent.chartLine = null;
         }
     }
 }

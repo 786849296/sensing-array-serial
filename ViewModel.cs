@@ -1,14 +1,21 @@
-﻿using Microsoft.UI;
+﻿using LiveChartsCore.Kernel.Sketches;
+using LiveChartsCore.SkiaSharpView;
+using LiveChartsCore;
+using Microsoft.UI;
 using Microsoft.UI.Xaml.Data;
 using Microsoft.UI.Xaml.Media;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using System.Text;
 using System.Threading.Tasks;
 using Windows.UI;
+using LiveChartsCore.SkiaSharpView.Painting;
+using SkiaSharp;
+using LiveChartsCore.Defaults;
 
 namespace uart
 {
@@ -62,6 +69,7 @@ namespace uart
     {
         public int x = x;
         public int y = y;
+        public ViewModel_lineChart chartLine = null;
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
         private ushort _adcValue = 0;
         public ushort adcValue
@@ -111,6 +119,62 @@ namespace uart
                 byte b = (byte)(linearGradientColors[(int)region].B * (1 - region + (int)region) + linearGradientColors[(int)region + 1].B * (region - (int)region));
                 return Color.FromArgb(0xff, r, g, b);
             }
+        }
+    }
+
+    internal class ViewModel_lineChart(HeatMap_pixel parent)
+    {
+        public HeatMap_pixel parent = parent;
+        public ISeries[] series = [
+            new LineSeries<DateTimePoint>
+            {
+                Values = new List<DateTimePoint>(),
+                Fill = null,
+                GeometryFill = null,
+                GeometryStroke = null,
+            }];
+        public ICartesianAxis[] xAxes = [
+            new DateTimeAxis(TimeSpan.FromMilliseconds(200), Formatter)
+            {
+                CustomSeparators = GetSeparators(),
+                AnimationsSpeed = TimeSpan.FromMilliseconds(30),
+                SeparatorsPaint = new SolidColorPaint(SKColors.Black.WithAlpha(100))
+            }];
+        public ICartesianAxis[] yAxes = [
+            new Axis
+            {
+                Name = "adcRaw",
+            }];
+        public long tokenLegend;
+
+        public void chartUpdate(ushort value)
+        {
+            var serie = series[0].Values as List<DateTimePoint>;
+            serie.Add(new DateTimePoint(DateTime.Now, value));
+            if (serie.Count > 40)
+                serie.RemoveAt(0);
+            xAxes[0].CustomSeparators = GetSeparators();
+        }
+
+        private static double[] GetSeparators()
+        {
+            var now = DateTime.Now;
+
+            return
+            [
+                now.AddMilliseconds(-1000).Ticks,
+                now.AddMilliseconds(-500).Ticks,
+                now.Ticks
+            ];
+        }
+
+        private static string Formatter(DateTime date)
+        {
+            var msAgo = (DateTime.Now - date).TotalMilliseconds;
+
+            return msAgo < 200
+                ? "now"
+                : $"{msAgo:N0}ms ago";
         }
     }
 }
