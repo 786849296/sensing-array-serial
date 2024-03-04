@@ -15,9 +15,10 @@
     <Grid>
         <Grid.Resources>
             <DataTemplate x:Key="itemPixel" x:DataType="local:HeatMap_pixel">
-                <Rectangle Width="8" 
-                           Height="8" 
-                           Margin="0 0 0 0">
+                <Rectangle Width="25" 
+                           Height="25" 
+                           Margin="0 0 0 0"
+                           Visibility="{x:Bind visibility}">
                     <Rectangle.Fill>
                         <SolidColorBrush Color="{x:Bind local:HeatMap_pixelHelper.GetColor(adcValue), Mode=OneWay}" />
                     </Rectangle.Fill>
@@ -258,6 +259,8 @@
                                         <Setter Property="Padding" Value="0 0 0 0" />
                                         <Setter Property="MinHeight" Value="8" />
                                         <Setter Property="MinWidth" Value="8" />
+                                        <Setter Property="MaxHeight" Value="8" />
+                                        <Setter Property="MaxWidth" Value="8" />
                                     </Style>
                                 </GridView.ItemContainerStyle>
                                 <GridView.ItemsPanel>
@@ -288,6 +291,8 @@
                                         <Setter Property="Padding" Value="0 0 0 0" />
                                         <Setter Property="MinHeight" Value="8" />
                                         <Setter Property="MinWidth" Value="8" />
+                                        <Setter Property="MaxHeight" Value="8" />
+                                        <Setter Property="MaxWidth" Value="8" />
                                     </Style>
                                 </GridView.ItemContainerStyle>
                                 <GridView.ItemsPanel>
@@ -318,6 +323,8 @@
                                         <Setter Property="Padding" Value="0 0 0 0" />
                                         <Setter Property="MinHeight" Value="8" />
                                         <Setter Property="MinWidth" Value="8" />
+                                        <Setter Property="MaxHeight" Value="8" />
+                                        <Setter Property="MaxWidth" Value="8" />
                                     </Style>
                                 </GridView.ItemContainerStyle>
                                 <GridView.ItemsPanel>
@@ -348,6 +355,8 @@
                                         <Setter Property="Padding" Value="0 0 0 0" />
                                         <Setter Property="MinHeight" Value="8" />
                                         <Setter Property="MinWidth" Value="8" />
+                                        <Setter Property="MaxHeight" Value="8" />
+                                        <Setter Property="MaxWidth" Value="8" />
                                     </Style>
                                 </GridView.ItemContainerStyle>
                                 <GridView.ItemsPanel>
@@ -367,6 +376,7 @@
                                 <ColumnDefinition Width="*" />
                             </Grid.ColumnDefinitions>
                             <GridView ItemsSource="{x:Bind palm}"
+                                      ItemTemplate="{StaticResource itemPixel}"
                                       IsItemClickEnabled="True"
                                       CanDragItems="False"
                                       AllowDrop="False"
@@ -377,17 +387,6 @@
                                       HorizontalAlignment="Center"
                                       VerticalAlignment="Center"
                                       ItemClick="click_heatMapItem">
-                                <GridView.ItemTemplate>
-                                    <DataTemplate x:DataType="local:HeatMap_pixel">
-                                        <Rectangle Width="25" 
-                                                   Height="25" 
-                                                   Margin="0 0 0 0">
-                                            <Rectangle.Fill>
-                                                <SolidColorBrush Color="{x:Bind local:HeatMap_pixelHelper.GetColor(adcValue), Mode=OneWay}" />
-                                            </Rectangle.Fill>
-                                        </Rectangle>
-                                    </DataTemplate>
-                                </GridView.ItemTemplate>
                                 <GridView.ItemContainerStyle>
                                     <Style TargetType="GridViewItem">
                                         <Setter Property="Margin" Value="0 0 0 0" />
@@ -417,12 +416,14 @@
                                 <lvc:CartesianChart Series="{x:Bind series}" 
                                                     XAxes="{x:Bind xAxes}"
                                                     YAxes="{x:Bind yAxes}"
+                                                    ZoomMode="None"
                                                     x:Name="chart"
-                                                    Height="100" >
+                                                    Height="200" >
                                     <lvc:CartesianChart.ContextFlyout>
                                         <CommandBarFlyout x:Name="lineChartFlyout">
                                             <AppBarButton Icon="Save" Click="click_CBFSaveIcon" CommandParameter="{Binding ElementName=chart}" />
                                             <AppBarButton Icon="Delete" Click="click_CBFDeleteIcon" CommandParameter="{x:Bind}"/>
+                                            <AppBarToggleButton Icon="Filter" IsChecked="{x:Bind isFilter, Mode=TwoWay}" />
                                         </CommandBarFlyout>
                                     </lvc:CartesianChart.ContextFlyout>
                                 </lvc:CartesianChart>

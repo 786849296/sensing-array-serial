@@ -23,6 +23,7 @@ using Windows.Storage.AccessCache;
 using Windows.System.Threading;
 using LiveChartsCore.SkiaSharpView.SKCharts;
 using LiveChartsCore.SkiaSharpView.WinUI;
+using LiveChartsCore.Defaults;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -65,14 +66,17 @@ namespace uart
             this.SetTitleBar(AppTitleBar);
             for (int i = 0; i < 7; i++)
                 for (int j = 0; j < 8; j++)
-                    palm.Add(new HeatMap_pixel(i, j));
+                    if ((i == 3 && j == 7) || (i > 4 && j == 0) || (i > 3 && j > 4))
+                        palm.Add(new HeatMap_pixel(Visibility.Collapsed));
+                    else
+                        palm.Add(new HeatMap_pixel(Visibility.Visible));
             for (int i = 0; i < 24; i++)
                 for (int j = 0; j < 8; j++)
                 {
-                    f1.Add(new HeatMap_pixel(i, j));
-                    f2.Add(new HeatMap_pixel(i, j));
-                    f3.Add(new HeatMap_pixel(i, j));
-                    f4.Add(new HeatMap_pixel(i, j));
+                    f1.Add(new HeatMap_pixel(Visibility.Visible));
+                    f2.Add(new HeatMap_pixel(Visibility.Visible));
+                    f3.Add(new HeatMap_pixel(Visibility.Visible));
+                    f4.Add(new HeatMap_pixel(Visibility.Visible));
                 }
 
             lastPivotIndex = pivot.SelectedIndex;
@@ -133,7 +137,7 @@ namespace uart
                                     com.DataBits = Convert.ToUInt16(combobox_dataBits.SelectedValue);
                                     com.StopBits = (SerialStopBitCount)combobox_stopBits.SelectedIndex;
                                     com.Parity = (SerialParity)combobox_parity.SelectedIndex;
-                                    com.ReadTimeout = TimeSpan.FromMilliseconds(165);
+                                    com.ReadTimeout = TimeSpan.FromMilliseconds(40);
                                     reader = new(com.InputStream) { ByteOrder = ByteOrder.BigEndian };
 
                                     info_comOpen = false;
@@ -176,20 +180,9 @@ namespace uart
                 {
                     if (mode == 1)
                         System.Threading.Thread.Sleep(165);
-                    await reader.LoadAsync(row * col * 2 + 2);
-                    bool flag_get = false;
-                    while (reader.UnconsumedBufferLength > 0)
-                        if (reader.ReadByte() == 0xff)
-                            if (reader.ReadByte() == 0xff)
-                            {
-                                flag_get = true;
-                                break;
-                            }
-                    if (!flag_get)
-                        throw new Exception("未找到帧头");
+                    // TODO: 串口读取部分代码更新，merge到其他分支
                     while (true)
                     {
-                        //放线程里面保证com和reader此时未操作
                         if (viewModel_Switch.isStartIcon)
                         {
                             //thread_collect.ShutdownQueueAsync();
@@ -198,20 +191,22 @@ namespace uart
                             reader.Dispose();
                             return;
                         }
-                        await reader.LoadAsync(row * col * 2 + 2);
-                        if (reader.UnconsumedBufferLength < row * col * 2 + 2)
+                        while (true)
                         {
-                            //保证读取的数据量
-                            if (mode == 1)
-                                System.Threading.Thread.Sleep(85);
-                            continue;
+                            if (reader.UnconsumedBufferLength < 2)
+                                await reader.LoadAsync(row * col * 2 + 2);
+                            if (reader.ReadByte() == 0xff)
+                                if (reader.ReadByte() == 0xff)
+                                {
+                                    if (reader.UnconsumedBufferLength < row * col * 2)
+                                        await reader.LoadAsync(row * col * 2 - reader.UnconsumedBufferLength);
+                                    break;
+                                }
                         }
                         ushort[,] heatmapValue = new ushort[row, col];
                         for (int i = 0; i < row; i++)
                             for (int j = 0; j < col; j++)
                                 heatmapValue[i, j] = reader.ReadUInt16();
-                        if (reader.ReadUInt16() != 0xffff)
-                            throw new Exception("未找到下一帧帧头");
                         this.DispatcherQueue.TryEnqueue(() =>
                         {
                             if (folder != null)
@@ -395,12 +390,12 @@ namespace uart
             if (pixel.chartLine == null)
             {
                 pixel.chartLine = new(pixel);
-                pixel.chartLine.yAxes[0].MaxLimit = Convert.ToInt32(legendRange.Text);
+                //pixel.chartLine.yAxes[0].MaxLimit = Convert.ToInt32(legendRange.Text);
                 lineCharts.Add(pixel.chartLine);
-                pixel.chartLine.tokenLegend = legendRange.RegisterPropertyChangedCallback(TextBlock.TextProperty, (s, dp) => {
-                    if (dp == TextBlock.TextProperty)
-                        pixel.chartLine.yAxes[0].MaxLimit = Convert.ToInt32((s as TextBlock).Text);
-                });
+                //pixel.chartLine.tokenLegend = legendRange.RegisterPropertyChangedCallback(TextBlock.TextProperty, (s, dp) => {
+                //    if (dp == TextBlock.TextProperty)
+                //        pixel.chartLine.yAxes[0].MaxLimit = Convert.ToInt32((s as TextBlock).Text);
+                //});
             }
         }
 
@@ -413,17 +408,30 @@ namespace uart
             // Initialize the file picker with the window handle (HWND).
             WinRT.Interop.InitializeWithWindow.Initialize(savePicker, hWnd);
             // Dropdown of file types the user can save the file as
-            savePicker.FileTypeChoices.Add("line chart", [".png"]);
+            savePicker.FileTypeChoices.Add("line chart", [".png", ".txt"]);
             // Open the picker for the user to pick a file
             StorageFile file = await savePicker.PickSaveFileAsync();
             if (file != null)
             {
                 // Prevent updates to the remote version of the file until we finish making changes and call CompleteUpdatesAsync.
                 CachedFileManager.DeferUpdates(file);
-                var skChart = new SKCartesianChart(lineChart);
                 using var stream = await file.OpenStreamForWriteAsync();
-                skChart.SaveImage(stream);
-            }
+                switch (file.FileType)
+                {
+                case ".png":
+                    var skChart = new SKCartesianChart(lineChart);
+                    skChart.SaveImage(stream);
+                    break;
+                case ".txt":
+                    using (var sw = new StreamWriter(stream))
+                    {
+                        var values = (lineChart.Series.First().Values as List<DateTimePoint>);
+                        foreach (var item in values)
+                            sw.WriteLine(item.Value);
+                    }
+                    break;
+                }
+            } 
             lineChart.ContextFlyout.Hide();
         }
 
@@ -431,7 +439,7 @@ namespace uart
         {
             var chartLine = (sender as AppBarButton).CommandParameter as ViewModel_lineChart;
             lineCharts.Remove(chartLine);
-            (chartLine.series[0].Values as ObservableCollection<int>).Clear();
+            (chartLine.series[0].Values as List<DateTimePoint>).Clear();
             legendRange.UnregisterPropertyChangedCallback(TextBlock.TextProperty, chartLine.tokenLegend);
             chartLine.parent.chartLine = null;
         }

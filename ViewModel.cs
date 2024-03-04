@@ -16,6 +16,8 @@ using Windows.UI;
 using LiveChartsCore.SkiaSharpView.Painting;
 using SkiaSharp;
 using LiveChartsCore.Defaults;
+using System.Diagnostics;
+using Microsoft.UI.Xaml;
 
 namespace uart
 {
@@ -65,10 +67,9 @@ namespace uart
         }
     }
 
-    internal class HeatMap_pixel(int x, int y) : INotifyPropertyChanged
+    internal class HeatMap_pixel(Visibility visibility) : INotifyPropertyChanged
     {
-        public int x = x;
-        public int y = y;
+        public Visibility visibility = visibility;
         public ViewModel_lineChart chartLine = null;
         public event PropertyChangedEventHandler PropertyChanged = delegate { };
         private ushort _adcValue = 0;
@@ -122,38 +123,67 @@ namespace uart
         }
     }
 
-    internal class ViewModel_lineChart(HeatMap_pixel parent)
+    internal class ViewModel_lineChart
     {
-        public HeatMap_pixel parent = parent;
+        public HeatMap_pixel parent;
+        private readonly List<DateTimePoint> _value = [];
+
+        readonly double[][] coeff;
+        public bool isFilter = false;
+
         public ISeries[] series = [
             new LineSeries<DateTimePoint>
             {
-                Values = new List<DateTimePoint>(),
+                //Values = _value,
                 Fill = null,
                 GeometryFill = null,
                 GeometryStroke = null,
+                LineSmoothness = 0
             }];
         public ICartesianAxis[] xAxes = [
             new DateTimeAxis(TimeSpan.FromMilliseconds(200), Formatter)
             {
                 CustomSeparators = GetSeparators(),
                 AnimationsSpeed = TimeSpan.FromMilliseconds(30),
-                SeparatorsPaint = new SolidColorPaint(SKColors.Black.WithAlpha(100))
+                //SeparatorsPaint = new SolidColorPaint(SKColors.Black.WithAlpha(100))
             }];
         public ICartesianAxis[] yAxes = [
             new Axis
             {
-                Name = "adcRaw",
+                //Name = "adcRaw",
+                //MinLimit = 0,
+                //MaxLimit = 3000,
             }];
         public long tokenLegend;
 
+        public ViewModel_lineChart(HeatMap_pixel parent)
+        {
+            IIR_Butterworth_CS_Library.IIR_Butterworth filter = new();
+            coeff = filter.Lp2bp(0.5 * 2 / 33.33, 4 * 2 / 33.33, 5);
+            this.parent = parent;
+        }
+
         public void chartUpdate(ushort value)
         {
-            var serie = series[0].Values as List<DateTimePoint>;
-            serie.Add(new DateTimePoint(DateTime.Now, value));
-            if (serie.Count > 40)
-                serie.RemoveAt(0);
+            _value.Add(new DateTimePoint(DateTime.Now, value));
+            if (_value.Count > 150)
+                _value.RemoveAt(0);
+            if (isFilter)
+            {
+                List<DateTimePoint> copy = [];
+                foreach (var item in _value)
+                    copy.Add(new DateTimePoint(item.DateTime, item.Value));
+                var data = copy.Select(x => x.Value.GetValueOrDefault());
+                data = FiltfiltSharp.DoFiltfilt([.. coeff[0]], [.. coeff[1]], data.ToList());
+                for (int i = 0; i < copy.Count; i++)
+                    copy[i].Value = data.ElementAt(i);
+                series[0].Values = copy;
+            }
+            else
+                series[0].Values = _value;
             xAxes[0].CustomSeparators = GetSeparators();
+            //yAxes[0].MinLimit = (series[0].Values as List<DateTimePoint>).Min(x => x.Value).Value - 20;
+            //yAxes[0].MaxLimit = yAxes[0].MinLimit + 100;
         }
 
         private static double[] GetSeparators()
@@ -162,8 +192,8 @@ namespace uart
 
             return
             [
-                now.AddMilliseconds(-1000).Ticks,
-                now.AddMilliseconds(-500).Ticks,
+                now.AddMilliseconds(-4000).Ticks,
+                now.AddMilliseconds(-2000).Ticks,
                 now.Ticks
             ];
         }
