@@ -24,6 +24,7 @@ using Windows.System.Threading;
 using LiveChartsCore.SkiaSharpView.SKCharts;
 using LiveChartsCore.SkiaSharpView.WinUI;
 using LiveChartsCore.Defaults;
+using OpenCvSharp;
 
 // To learn more about WinUI, the WinUI project structure,
 // and more about our project templates, see: http://aka.ms/winui-project-info.
@@ -33,7 +34,7 @@ namespace uart
     /// <summary>
     /// An empty window that can be used on its own or navigated to within a Frame.
     /// </summary>
-    public sealed partial class MainWindow : Window
+    public sealed partial class MainWindow : Microsoft.UI.Xaml.Window
     {
         public const ushort row = 32;
         public const ushort col = 32;
@@ -84,32 +85,35 @@ namespace uart
 
         private void heatMapValue2UI(ushort[,] heatmapValue)
         {
+            var size = Convert.ToInt32(combobox_gaussKernelSize.SelectedValue);
+            Mat mat = new(row, col, MatType.CV_16U, heatmapValue);
+            Cv2.GaussianBlur(mat, mat, new OpenCvSharp.Size(size, size), 0);
             for (int i = 0; i < row; i++)
                 for (int j = 0; j < col; j++)
                     if (i < 24)
                         switch (j / 8)
                         {
                         case 0:
-                            f1[i * 8 + j].adcValue = heatmapValue[i, j];
-                            f1[i * 8 + j].chartLine?.chartUpdate(f1[i * 8 + j].adcValue);
+                            f1[i * 8 + j].adcValue = mat.At<ushort>(i, j);
+                            f1[i * 8 + j].chartLine?.chartUpdate(heatmapValue[i, j]);
                             break;
                         case 1:
-                            f2[i * 8 + j - 8].adcValue = heatmapValue[i, j];
-                            f2[i * 8 + j - 8].chartLine?.chartUpdate(f2[i * 8 + j - 8].adcValue);
+                            f2[i * 8 + j - 8].adcValue = mat.At<ushort>(i, j);
+                                f2[i * 8 + j - 8].chartLine?.chartUpdate(heatmapValue[i, j]);
                             break;
                         case 2:
-                            f3[i * 8 + j - 16].adcValue = heatmapValue[i, j];
-                            f3[i * 8 + j - 16].chartLine?.chartUpdate(f3[i * 8 + j - 16].adcValue);
+                            f3[i * 8 + j - 16].adcValue = mat.At<ushort>(i, j);
+                                f3[i * 8 + j - 16].chartLine?.chartUpdate(heatmapValue[i, j]);
                             break;
                         case 3:
-                            f4[i * 8 + j - 24].adcValue = heatmapValue[i, j];
-                            f4[i * 8 + j - 24].chartLine?.chartUpdate(f4[i * 8 + j - 24].adcValue);
+                            f4[i * 8 + j - 24].adcValue = mat.At<ushort>(i, j);
+                                f4[i * 8 + j - 24].chartLine?.chartUpdate(heatmapValue[i, j]);
                             break;
                         }
                     else if (i < 31 && j < 8)
                     {
-                        palm[(i - 24) * 8 + j].adcValue = heatmapValue[i, j];
-                        palm[(i - 24) * 8 + j].chartLine?.chartUpdate(palm[(i - 24) * 8 + j].adcValue);
+                        palm[(i - 24) * 8 + j].adcValue = mat.At<ushort>(i, j);
+                        palm[(i - 24) * 8 + j].chartLine?.chartUpdate(heatmapValue[i, j]);
                     }
         }
 

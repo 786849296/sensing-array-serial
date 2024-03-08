@@ -123,12 +123,13 @@ namespace uart
         }
     }
 
-    internal class ViewModel_lineChart
+    internal class ViewModel_lineChart(HeatMap_pixel parent)
     {
-        public HeatMap_pixel parent;
+        readonly double[] coffeB = [0.00157882781368838, 0, -0.00789413906844189, 0, 0.0157882781368838, 0, -0.0157882781368838, 0, 0.00789413906844189, 0, -0.00157882781368838];
+        readonly double[] coffeA = [1, -7.58607012789104, 26.1581569876096, -54.0882910339851, 74.3720632958967, -71.1151485731343, 47.9081399804196, -22.4531763183455, 7.00594318511866, -1.31411670605260, 0.112500021665274];
+        public HeatMap_pixel parent = parent;
         private readonly List<DateTimePoint> _value = [];
 
-        readonly double[][] coeff;
         public bool isFilter = false;
 
         public ISeries[] series = [
@@ -156,13 +157,6 @@ namespace uart
             }];
         public long tokenLegend;
 
-        public ViewModel_lineChart(HeatMap_pixel parent)
-        {
-            IIR_Butterworth_CS_Library.IIR_Butterworth filter = new();
-            coeff = filter.Lp2bp(0.5 * 2 / 33.33, 4 * 2 / 33.33, 5);
-            this.parent = parent;
-        }
-
         public void chartUpdate(ushort value)
         {
             _value.Add(new DateTimePoint(DateTime.Now, value));
@@ -174,7 +168,7 @@ namespace uart
                 foreach (var item in _value)
                     copy.Add(new DateTimePoint(item.DateTime, item.Value));
                 var data = copy.Select(x => x.Value.GetValueOrDefault());
-                data = FiltfiltSharp.DoFiltfilt([.. coeff[0]], [.. coeff[1]], data.ToList());
+                data = FiltfiltSharp.FiltfiltHelper.DoFiltfilt([.. coffeB], [.. coffeA], data.ToList());
                 for (int i = 0; i < copy.Count; i++)
                     copy[i].Value = data.ElementAt(i);
                 series[0].Values = copy;

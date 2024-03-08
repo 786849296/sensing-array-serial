@@ -16,13 +16,14 @@
 		<PackageCertificateThumbprint>21A152609AFF1EDCB21A6FCE2E830A8E5F98E5B6</PackageCertificateThumbprint>
 		<AppxPackageSigningTimestampDigestAlgorithm>SHA256</AppxPackageSigningTimestampDigestAlgorithm>
 		<AppxAutoIncrementPackageRevision>False</AppxAutoIncrementPackageRevision>
-		<AppxSymbolPackageEnabled>True</AppxSymbolPackageEnabled>
+		<AppxSymbolPackageEnabled>False</AppxSymbolPackageEnabled>
 		<GenerateTestArtifacts>True</GenerateTestArtifacts>
 		<AppxBundle>Auto</AppxBundle>
 		<AppInstallerUri>\\wsl.localhost\Ubuntu\home\z7868\code</AppInstallerUri>
 		<HoursBetweenUpdateChecks>0</HoursBetweenUpdateChecks>
-		<AppxBundlePlatforms>x64</AppxBundlePlatforms>
+		<AppxBundlePlatforms>x86|x64</AppxBundlePlatforms>
 		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Configurations>Debug;Release</Configurations>
 	</PropertyGroup>
 
 	<ItemGroup>
@@ -36,12 +37,13 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<PackageReference Include="IIR_Butterworth_CS_Library" Version="1.1.2" />
 		<PackageReference Include="LiveChartsCore.SkiaSharpView.WinUI" Version="2.0.0-rc2.1" />
 		<PackageReference Include="Microsoft.ML" Version="3.0.0" />
 		<PackageReference Include="Microsoft.ML.OnnxTransformer" Version="3.0.0" />
 		<PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.22621.3233" />
 		<PackageReference Include="Microsoft.WindowsAppSDK" Version="1.5.240227000" />
+		<PackageReference Include="OpenCvSharp4" Version="4.9.0.20240103" />
+		<PackageReference Include="OpenCvSharp4.runtime.win" Version="4.9.0.20240103" />
 		<Manifest Include="$(ApplicationManifest)" />
 	</ItemGroup>
 
